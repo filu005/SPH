@@ -1,3 +1,5 @@
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "Painter.hpp"
 #include "ParticleSystem.hpp"
 
@@ -7,13 +9,23 @@ namespace particle_system
 	int get_cell_index(const glm::vec3 v)
 	{
 		using namespace c;
-		return static_cast<int>(floor((v.x - xmin) / dx) + (floor((v.y - ymin) / dy)) * (float) K + (floor((v.z - zmin) / dz)) * (float) K * (float) L);
+		return static_cast<int>(
+			floor((v.x - xmin) / dx) + 
+			floor((v.y - ymin) / dy) * (float) K + 
+			floor((v.z - zmin) / dz) * (float) K * (float) L
+			);
+	}
+
+	bool out_of_grid_scope(const glm::vec3 v)
+	{
+		using namespace c;
+		return v.x < xmin || v.x > xmax || v.y < ymin || v.y > ymax || v.z < zmin || v.z > zmax;
 	}
 }
 
 ParticleSystem::ParticleSystem()
 {
-
+	setup_buffers();
 }
 
 void ParticleSystem::paint(Painter& p) const
@@ -29,7 +41,10 @@ void ParticleSystem::setup_buffers(void)
 	for(auto const & p : particles)
 	{
 		auto particle_position = p.position;
-		translations[index] = particle_position;
+		glm::mat4 model;
+		model = glm::translate(model, particle_position);
+		model = glm::scale(model, glm::vec3(0.02f));
+		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		index++;
 	}
@@ -37,20 +52,26 @@ void ParticleSystem::setup_buffers(void)
 	glGenVertexArrays(1, &this->VAO);
 	glBindVertexArray(this->VAO);
 
-	glGenBuffers(1, &this->instance_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, this->instance_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * c::N, &this->translations[0], GL_STATIC_DRAW);
+	glGenBuffers(1, &this->model_mat_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->model_mat_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * c::N, &this->model_matrices[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &this->bin_idx_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * c::N, &this->bin_idx[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * c::N, &this->bin_idx[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &this->VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->sphere_vertices), &this->sphere_vertices[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//point_vertices
+	//glGenBuffers(1, &this->VBO);
+	//glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(this->point_vertices), &this->point_vertices[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	//glGenBuffers(1, &this->EBO);
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
@@ -59,19 +80,30 @@ void ParticleSystem::setup_buffers(void)
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*) 0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*) 0);
 	//glVertexAttribDivisor(0, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(GLfloat), (GLvoid*) 0);
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*) 0);
 	glVertexAttribDivisor(1, 1);
 	//By setting the attribute divisor to 1 we're effectively telling OpenGL that the vertex attribute at attribute location x is an instanced array.
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->instance_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->model_mat_VBO);
+	// Set attribute pointers for matrix (4 x vec4)
 	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*) 0);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) 0);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) (sizeof(glm::vec4)));
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) (2 * sizeof(glm::vec4)));
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) (3 * sizeof(glm::vec4)));
+
 	glVertexAttribDivisor(2, 1);
+	glVertexAttribDivisor(3, 1);
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -79,16 +111,46 @@ void ParticleSystem::setup_buffers(void)
 
 void ParticleSystem::reset_buffers()
 {
+	glDisableVertexAttribArray(5);
+	glDisableVertexAttribArray(4);
+	glDisableVertexAttribArray(3);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
-	glDeleteBuffers(1, &this->EBO);
+	//glDeleteBuffers(1, &this->EBO);
 	glDeleteBuffers(1, &this->VBO);
 	glDeleteBuffers(1, &this->bin_idx_VBO);
-	glDeleteBuffers(1, &this->instance_VBO);
+	glDeleteBuffers(1, &this->model_mat_VBO);
 	glDeleteVertexArrays(1, &this->VAO);
 
 	setup_buffers();
+}
+
+void ParticleSystem::update_buffers()
+{
+	using particle_system::get_cell_index;
+
+	int index = 0;
+	for(auto const & p : particles)
+	{
+		auto particle_position = p.position;
+		glm::mat4 model;
+		model = glm::translate(model, particle_position);
+		model = glm::scale(model, glm::vec3(0.02f));
+		model_matrices[index] = model;
+		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+		index++;
+	}
+
+	// alternatywa: http://www.gamedev.net/topic/666461-map-buffer-range-super-slow/
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->model_mat_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * c::N, &this->model_matrices[0]);      //replace data in VBO with new data
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * c::N, &this->bin_idx[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void ParticleSystem::move_particles_around(float dt)
@@ -107,8 +169,9 @@ void ParticleSystem::move_particles_around(float dt)
 		//float tt = t*RANDOM(0.7f, 1.2f);
 		float x = r*cos(t);
 		float y = r*sin(t);
+		float z = 5.0f*r*cos(t*10.0f)*sin(t*10.0f);
 
-		p.position = p.position + glm::vec3(x, y, 0.0f);// *static_cast<float>(dt) *100.0f;
+		p.position = p.position + glm::vec3(x, y, z);// *static_cast<float>(dt) *100.0f;
 	}
 }
 
@@ -128,6 +191,11 @@ void ParticleSystem::insert_sort_particles_by_indices()
 		particles[j + 1] = temp;
 	}
 }
+
+GLfloat const ParticleSystem::point_vertices[3] =
+{
+	0.0f, 0.0f, 0.0f
+};
 
 GLfloat const ParticleSystem::sphere_vertices[720] =
 {

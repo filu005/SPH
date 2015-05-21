@@ -11,12 +11,14 @@
 namespace particle_system
 {
 	int get_cell_index(const glm::vec3 v);
+	bool out_of_grid_scope(const glm::vec3 v);
 }
 
 class ParticleSystem : public Paintable
 {
 public:
-	friend class Simulation;
+	// http://stackoverflow.com/questions/20091046/what-should-a-c-getter-return
+	friend class Simulation;// jedynie do macania 'std::array<> particles'
 
 	ParticleSystem();
 
@@ -25,6 +27,7 @@ public:
 
 	void reset_buffers();
 	void move_particles_around(float dt);
+	void update_buffers();
 
 	void insert_sort_particles_by_indices();
 
@@ -35,13 +38,14 @@ private:
 	std::array<Particle, c::N> particles;// wszystkie posortowane (wzgledem indeksu w tablicy grid) Particle
 
 	// Geometry, instance offset array
-	GLfloat const static sphere_vertices[720];//294
+	GLfloat const static point_vertices[3];
+	GLfloat const static sphere_vertices[720];//240
 	GLuint const static sphere_indices[576];
-	glm::vec3 translations[c::N];
+	std::array<glm::mat4, c::N> model_matrices;
 	GLfloat bin_idx[c::N];
 
 	// OpenGL
 	GLuint EBO;
-	GLuint instance_VBO;
+	GLuint model_mat_VBO;
 	GLuint bin_idx_VBO;
 };

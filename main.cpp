@@ -12,12 +12,23 @@
 
 // My includes
 #include "Application.hpp"
+//#include "constants.hpp"
 
 // Function prototypes
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void do_movement(float dt);
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void render(GLFWwindow* window);
 double calcFPS(GLFWwindow* window, double theTimeInterval = 1.0, std::string theWindowTitle = "NONE");
 bool secElapse(double interval = 1.0);
+
+// Camera
+bool keys[1024];
+GLfloat lastX = c::width * 0.5f, lastY = c::height * 0.5f;
+bool firstMouse = true;
 
 unique_ptr<Application> app;
 
@@ -32,12 +43,15 @@ int main(int argc, char* argv[])
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr); // Windowed
+	GLFWwindow* window = glfwCreateWindow(c::width, c::height, "LearnOpenGL", nullptr, nullptr); // Windowed
 	glfwMakeContextCurrent(window);
 
 	// Set the required callback functions
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 
 	// Initialize GLEW to setup the OpenGL Function pointers
 	glewExperimental = GL_TRUE;
@@ -45,7 +59,12 @@ int main(int argc, char* argv[])
 	glEnable(GL_PROGRAM_POINT_SIZE);
 
 	// Define the viewport dimensions
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, c::width, c::height);
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_MULTISAMPLE);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_FRONT_AND_BACK);
 
 	app = make_unique<Application>();
 	double t0 = glfwGetTime();
@@ -54,15 +73,16 @@ int main(int argc, char* argv[])
 	// Game loop
 	while(!glfwWindowShouldClose(window))
 	{
-		
+		dt = glfwGetTime() - t0;
+		t0 = glfwGetTime();
+
 		// Check and call events
 		glfwPollEvents();
+		do_movement(static_cast<GLfloat>(dt));
 
 		calcFPS(window, 1.0, "");
-
-		dt = glfwGetTime() - t0;
-		app->tick(dt);
-		t0 = glfwGetTime();
+		
+		app->tick(static_cast<GLfloat>(dt));
 
 		render(window);
 
@@ -72,6 +92,21 @@ int main(int argc, char* argv[])
 
 	glfwTerminate();
 	return 0;
+}
+
+// Moves/alters the camera positions based on user input
+void do_movement(GLfloat dt)
+{
+	Camera& camera = app->camera;
+	// Camera controls
+	if(keys[GLFW_KEY_W])
+		camera.ProcessKeyboard(FORWARD, dt);
+	if(keys[GLFW_KEY_S])
+		camera.ProcessKeyboard(BACKWARD, dt);
+	if(keys[GLFW_KEY_A])
+		camera.ProcessKeyboard(LEFT, dt);
+	if(keys[GLFW_KEY_D])
+		camera.ProcessKeyboard(RIGHT, dt);
 }
 
 // Is called whenever a key is pressed/released via GLFW
@@ -86,13 +121,46 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			break;
 		}
 	}
-	render(window);
+
+	if(action == GLFW_PRESS)
+		keys[key] = true;
+	else if(action == GLFW_RELEASE)
+		keys[key] = false;
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	Camera& camera = app->camera;
+	GLfloat const xposf = static_cast<GLfloat>(xpos);
+	GLfloat const yposf = static_cast<GLfloat>(ypos);
+
+	if(firstMouse)
+	{
+		lastX = xposf;
+		lastY = yposf;
+		firstMouse = false;
+	}
+
+	GLfloat xoffset = xposf - lastX;
+	GLfloat yoffset = lastY - yposf;  // Reversed since y-coordinates go from bottom to left
+
+	lastX = xposf;
+	lastY = yposf;
+
+	camera.ProcessMouseMovement(xoffset*2.5f, yoffset*2.5f);
+}
+
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	Camera& camera = app->camera;
+	camera.ProcessMouseScroll(static_cast<GLfloat>(yoffset) * 0.1f);
 }
 
 void render(GLFWwindow* window)
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	app->paint();
 

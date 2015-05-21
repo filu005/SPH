@@ -22,11 +22,14 @@ namespace c
 
 	// const float wallStiffness = -10000.0f;// im mniejsza tym sciany bardziej 'faluja'
 	// const float wallDamping = -0.9;
+	const int width = 800;
+	const int height = 600;
 
+	const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 	const float viewHeight = 1.2f;
-	const float viewWidth = (4.0f / 3.0f) * viewHeight;// 1.6
+	const float viewWidth = aspectRatio * viewHeight;// 1.6
 
-	const unsigned int wallCount = 4;
+	const unsigned int wall_count = 6;
 
 #if SIMULATION_PAIR
 	const unsigned int totalParticleCount = 2;
@@ -37,15 +40,15 @@ namespace c
 #if SIMULATION_PAIR
 	const float dt = 0.0003f;//0.0004f
 #else
-	const float dt = 0.0005f;//0.015f
+	const float dt = 0.005f;//0.015f
 #endif
 }
 
 namespace c
 {
-	const int N = 100;
-	const int K = 20, L = 20, M = 20;
-	const int C = K*L*M;// *M;
+	const int N = 1500;// total particle count
+	const int K = 64, L = 64, M = 64;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
+	const int C = K*L*M;
 	const float xmin = -1.0, ymin = -1.0, zmin = -1.0;
 	const float xmax = 1.0, ymax = 1.0, zmax = 1.0;
 	const float dx = (xmax - xmin) / static_cast<float>(K);

@@ -1,19 +1,26 @@
 #include "Simulation.hpp"
 
 
-Simulation::Simulation()
+Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f)
 {
-
+	
 }
 
 void Simulation::run(float dt)
 {
+	emit_particles();
+
 	grid.clear_grid();
 	particle_system.insert_sort_particles_by_indices();
-	this->bin_particles_in_grid();
+	bin_particles_in_grid();
 
-	//particle_system.move_particles_around(dt);
-	//particle_system.reset_buffers();
+	compute_density();
+	compute_forces();
+	advance();
+	resolve_collisions();
+
+	// tutaj bo Painter::paint() jest const
+	particle_system.update_buffers();
 }
 
 void Simulation::bin_particles_in_grid()
@@ -25,11 +32,17 @@ void Simulation::bin_particles_in_grid()
 
 	for(auto & i : particles)
 	{
+		// rozwiazanie na kiedy uzyskam dobrze dzialajacy mechanizm kolizji (gdzie czasteczki nie beda wypadac na orbite/poza 'pudelko')
+		//glm::vec3 particle_position_vector = i.position;
+		//if(out_of_grid_scope(particle_position_vector))
+		//	continue;
+		//int c = get_cell_index(particle_position_vector);
+
 		int c = get_cell_index(i.position);
 
 		// temporary hack
 		if(c < 0 || c >= c::C)
-			c = 0;
+			continue;
 
 		if(grid[c].no_particles == 0)
 			grid[c].first_particle = &i;
@@ -41,8 +54,10 @@ void Simulation::bin_particles_in_grid()
 void Simulation::iterate_through_all_neighbours()
 {
 	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using namespace c;
 
-	auto & particles = particle_system.particles;
+	//auto & particles = particle_system.particles;
 	auto & grid = this->grid.grid;
 
 	// go through all grids
@@ -62,13 +77,15 @@ void Simulation::iterate_through_all_neighbours()
 				{
 					for(int x = -1; x <= 1; ++x)
 					{
-						int neighbour_grid_idx = get_cell_index(particle_i->position + glm::vec3(x*c::dx, y*c::dy, z*c::dz));
-						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-						{
-							// printf("%d ,, ", neighbour_grid_idx);
+						glm::vec3 neighbour_cell_vector = particle_i->position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+						if(out_of_grid_scope(neighbour_cell_vector))
 							continue;
-						}
 
+						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+							continue;
+						
+						//printf("%d ,, ", neighbour_grid_idx);
 						auto particle_j = grid[neighbour_grid_idx].first_particle;
 
 						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
@@ -80,8 +97,308 @@ void Simulation::iterate_through_all_neighbours()
 					}
 				}
 			}
-			// printf(":%d\n", neighbours_count);
+			printf(":%d\n", neighbours_count);
 			++particle_i;
+		}
+	}
+}
+
+void Simulation::emit_particles()
+{
+	using namespace c;
+
+	if(particle_count >= c::N)
+		return;
+
+	float const additional_margin = 0.8f;
+	float const placement_mod = 0.25f;
+	auto & particles = particle_system.particles;
+
+	for(float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
+		for(float y = ymin*placement_mod; y < ymax*placement_mod; y += c::H*additional_margin)
+			for(float z = zmin*placement_mod; z < zmax*placement_mod; z += c::H*additional_margin)
+			{
+				Particle& tp = particles[particle_count];
+				tp.position = glm::vec3(x, y, z);
+				tp.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+				tp.previous_position = tp.position;
+				++particle_count;
+				if(particle_count >= c::N)
+					return;
+			}
+}
+
+void Simulation::compute_density()
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using namespace c;
+	const float h_sq = c::H*c::H;
+
+	auto & grid = this->grid.grid;
+	
+	// go through all grids
+	for(auto & i : grid)
+	{
+		Particle * particle_i_ptr = i.first_particle;
+
+		// go through all particles in grid [i]
+		for(int ii = 0; ii < i.no_particles; ++ii)
+		{
+			Particle & particle_i = *particle_i_ptr;
+			particle_i.density = 0.0f;
+
+			// go through neighbours of particle [ii] in grid [i]
+			for(int z = -1; z <= 1; ++z)
+			{
+				for(int y = -1; y <= 1; ++y)
+				{
+					for(int x = -1; x <= 1; ++x)
+					{
+						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+						if(out_of_grid_scope(neighbour_cell_vector))
+							continue;
+
+						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+						//if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+						//	continue;
+
+						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+						
+						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						{
+							Particle& particle_j = *particle_j_ptr;
+
+							glm::vec3 rVec = particle_i.position - particle_j.position;
+							float r_sq = dot(rVec, rVec);//rVec.x*rVec.x + rVec.y*rVec.y
+							float r = sqrt(r_sq);
+
+							if(r > c::H)
+							{
+								++particle_j_ptr;
+								continue;
+							}
+
+							particle_i.density += W_poly6(r_sq, h_sq, c::H);
+
+							++particle_j_ptr;
+						}
+
+					}
+				}
+			}
+
+			particle_i.density *= c::particleMass;
+
+			// compute pressure
+			particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1);// Tait equation
+			//particle_i.pressure = c::gasStiffness * (particle_i.density - c::restDensity);
+
+			++particle_i_ptr;
+		}
+	}
+}
+
+void Simulation::compute_forces()
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using namespace c;
+	glm::vec3 totalF(0.0f, 0.0f, 0.0f);
+	glm::vec3 pressureF(0.0f, 0.0f, 0.0f), viscosityF(0.0f, 0.0f, 0.0f), externalF(0.0f, 0.0f, 0.0f), surfacetensionF(0.0f, 0.0f, 0.0f);
+	// const float h_sq = c::H*c::H;
+
+	auto & grid = this->grid.grid;
+
+	// go through all grids
+	for(auto& i : grid)
+	{
+		Particle * particle_i_ptr = i.first_particle;
+
+		// go through all particles in grid [i]
+		for(int ii = 0; ii < i.no_particles; ++ii)
+		{
+			Particle & particle_i = *particle_i_ptr;
+
+			glm::vec3 colorFieldGrad(0.0f, 0.0f, 0.0f);
+			float colorFieldLap(0.0f);
+
+			int no_neighbours = 0;
+
+			// go through neighbours of particle [ii] in grid [i]
+			for(int z = -1; z <= 1; ++z)
+			{
+				for(int y = -1; y <= 1; ++y)
+				{
+					for(int x = -1; x <= 1; ++x)
+					{
+						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+						if(out_of_grid_scope(neighbour_cell_vector))
+							continue;
+
+						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+						//if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+						//	continue;
+
+						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						{
+							Particle& particle_j = *particle_j_ptr;
+
+							glm::vec3 rVec = particle_i.position - particle_j.position;
+							float r_sq = dot(rVec, rVec);
+							float r = sqrt(r_sq);
+
+							if(r > c::H)
+							{
+								++particle_j_ptr;
+								continue;
+							}
+
+							colorFieldLap += LapW_poly6(r, c::H) / particle_j.density;
+							viscosityF += (particle_j.velocity - particle_i.velocity) / particle_j.density*LapW_viscosity(r, c::H);
+
+							if(particle_i.id == particle_j.id)
+							{
+								++particle_j_ptr;
+								continue;
+							}
+
+							++no_neighbours;
+
+							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+							colorFieldGrad += gradW_poly / particle_j.density;
+							pressureF += 0.5f*(particle_j.pressure + particle_i.pressure) / particle_j.density*GradW_spiky(r, c::H)*rVec;
+							// pressureF += (particleJ.p()/pow(particleJ.density, 2) + particleI.p()/pow(particleI.density, 2))*GradW_spiky(r, c::H)*rVec;
+
+							++particle_j_ptr;
+						}
+					}
+				}
+			}
+
+			colorFieldGrad *= c::particleMass;
+			colorFieldLap *= c::particleMass;
+
+			float colorFieldGradMag = glm::length(colorFieldGrad);
+			if(colorFieldGradMag > c::surfaceThreshold)
+				surfacetensionF = -c::surfaceTension*colorFieldLap*colorFieldGrad / colorFieldGradMag;// -sigma*nabla^{2}[c_s]*(nabla[c_s]/|nabla[c_s]|)
+			pressureF *= -c::particleMass;//*particleI.density;
+			viscosityF *= c::particleMass*c::viscosity;
+			externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
+
+			totalF = pressureF + viscosityF + surfacetensionF + externalF;
+
+			particle_i.acc = totalF / particle_i.density;
+			//printf("(%f, %f) ,, ", particle_i.acc.x, particle_i.acc.y);
+
+			++particle_i_ptr;
+
+		}
+	}
+}
+
+void Simulation::advance()
+{
+	using namespace c;
+	// http://stackoverflow.com/questions/16056300/runge-kutta-rk4-not-better-than-verlet?rq=1
+	float kinetic_force = 0.0f, potential_force = 0.0f;
+	auto & particles = particle_system.particles;
+	
+	for(auto & p : particles)
+	{
+		// 0. semi-implicit Euler
+		// glm::vec3 newVel = p.velocity + p.acc()*dt;
+		// glm::vec3 newPos = p.position + newVel*dt;
+
+		// 1. O(dt^3)
+		glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
+		glm::vec3 new_velocity = (new_position - p.position) / dt;
+
+		// 2. O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
+		// glm::vec3 newPos = 2.0*p.position - p.posPrev() + p.acc()*dt*dt;// r_(t+dt)
+		// glm::vec3 newVel = (newPos - p.position)/dt;// v_(t+dt)
+
+		p.previous_position = p.position;
+		p.position = new_position;
+		p.velocity = new_velocity;
+
+		potential_force += p.position[1] * fabs(p.acc[1]);
+		kinetic_force += pow(new_velocity[1], 2);
+	}
+
+	mechanical_energy = 0.5f*c::particleMass*kinetic_force + potential_force*c::particleMass;
+}
+
+void Simulation::resolve_collisions()
+{
+	// coefficient of restitution:
+	// To cancel out the velocity in the normal direction we set cR = 0,
+	// which models the normally applied no-slip condition for a liquid,
+	// i.e. an inelastic collision, while models an elastic collision as in (4. 56)
+	static const float cR = 0.5f;
+	static const float particleBounceRadius = 0.05f;
+
+	auto const & walls_positions = bounding_box.surface_positions;
+	auto const & walls_normals = bounding_box.surface_normals;
+
+	for(auto & tp : particle_system.particles)
+	{
+		for(unsigned j = 0; j < bounding_box.no_surfaces; ++j)
+		{
+			auto const & wall_position = walls_positions[j];
+			auto const & wall_normal = walls_normals[j];
+
+			float d = c::H;
+			float dist2 = fabs(dot(wall_position - tp.position, wall_normal) + particleBounceRadius);
+
+			// distance method:
+			// http://sccg.sk/~durikovic/publications/Pub09_11_files/SCCG2010_SPH_Flood.pdf
+			if(dist2 < d)//dist2 < d
+			{
+				static const float c = 4.5f;
+
+				// if(tp.velocity*wallNormal < glm::vec3(0.0f, 0.0f, 0.0f))
+				tp.velocity += c*(2.0f*d - dist2)*wall_normal;
+			}
+
+			if(dist2 < 0.01f && false)// dist2 < 0.0f
+			{
+				// 1.
+				// tp.acc() += c::wallStiffness * wallNormal * dist2;
+				// tp.acc() += c::wallDamping * dot(tp.position, wallNormal) * wallNormal;
+				// 2.
+				float velNorm = glm::length(tp.velocity);//sqrt(dot(tp.velocity, tp.velocity));
+				tp.position += fabs(dist2)*wall_normal;
+				// tp.velocity -= 2.0*dot(tp.velocity, wallNormal)*wallNormal;// kelager (4.56)
+				// tp.velocity -= (1.0 + cR)*dot(tp.velocity, wallNormal)*wallNormal;// kelager (4.57)
+				tp.velocity -= (1.0f + cR*(fabs(dist2) / (c::dt*velNorm)))*dot(tp.velocity, wall_normal)*wall_normal;// kelager (4.58)
+
+				// 3.
+				// tp.velocity += fabs(dist2) * wallNormal / dt;
+
+				// tp.position = tp.position - tp.velocity*dt;
+
+				// 4.
+				// r_c - miejsce kolizji
+				// r_12 - obliczone poprzednie polozenie czastki (polozone 'za' przeszkoda)
+				// glm::vec3 r_c = tp.position;
+
+				// float velNorm = math::mag(tp.velocity);//sqrt(dot(tp.velocity, tp.velocity));
+
+				// float r_rc = dot(wallNormal, r_c);
+				// float r_r1 = dot(wallNormal, tp.posPrev());
+				// glm::vec3 r_12 = tp.posPrev() - (1.0f + cR)*(r_r1 - r_rc)*wallNormal;
+
+				// tp.position += wallNormal*fabs(dist2);
+				// tp.posPrev() = r_12;
+				// tp.velocity -= (1.0 + cR*(fabs(dist2)/(dt*velNorm)))*dot(tp.velocity, wallNormal)*wallNormal;//(1.0 + cR*(fabs(dist2)/(dt*velNorm)))
+
+				// jesli wykrylem kolizje to licze ja tylko dla jednej sciany
+				// fix zeby naprawic zrabane normalne scin w rogach
+				// break;
+			}
 		}
 	}
 }

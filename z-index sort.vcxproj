@@ -81,9 +81,11 @@
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
     <ClCompile Include="Simulation.cpp" />
+    <ClCompile Include="Box.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.hpp" />
+    <ClInclude Include="Camera.hpp" />
     <ClInclude Include="constants.hpp" />
     <ClInclude Include="Grid.hpp" />
     <ClInclude Include="Paintable.hpp" />
@@ -92,6 +94,7 @@
     <ClInclude Include="ParticleSystem.hpp" />
     <ClInclude Include="Shader.hpp" />
     <ClInclude Include="Simulation.hpp" />
+    <ClInclude Include="Box.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

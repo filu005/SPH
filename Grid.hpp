@@ -32,9 +32,11 @@ private:
 	std::array<GridCell, c::C> grid;// przechowuje wskaznik do pierwszej Particle oraz ich calkowita liczbe w danej komorce.
 
 	// Geometry, instance offset array
-	GLfloat const static quad_vertices[8];
-	glm::vec2 translations[c::C];
+	GLfloat const static cube_vertices[8*3];
+	GLuint const static cube_indices[16];
+	std::array<glm::vec3, c::C> translations;
 
 	// OpenGL
 	GLuint instance_VBO;
+	GLuint EBO;
 };

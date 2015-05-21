@@ -1,8 +1,10 @@
 #pragma once
 #include <array>
+#include <vector>
 
 #include "Simulation.hpp"
 #include "Painter.hpp"
+#include "Camera.hpp"
 
 
 class Application
@@ -14,8 +16,11 @@ public:
 	void paint();
 	void tick(float dt);
 
+	Camera camera;
+
 private:
 	Simulation _sim;
-	std::array<Paintable*, 2> _paintables;
+	std::vector<Paintable*> _paintables;
+	//std::array<Paintable*, 2> _paintables;
 	Painter _painter;
 };
