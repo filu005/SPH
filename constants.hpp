@@ -46,11 +46,11 @@ namespace c
 
 namespace c
 {
-	const int N = 2000;// total particle count
+	const int N = 10000;// total particle count
 	const int K = 64, L = 64, M = 64;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
-	const float xmin = -1.0, ymin = -1.0, zmin = -1.0;
-	const float xmax = 1.0, ymax = 1.0, zmax = 1.0;
+	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.5f;
+	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.5f;
 	const float dx = (xmax - xmin) / static_cast<float>(K);
 	const float dy = (ymax - ymin) / static_cast<float>(L);
 	const float dz = (zmax - zmin) / static_cast<float>(M);

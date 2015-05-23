@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 		glfwPollEvents();
 
 		fps = calcFPS(window, 1.0, "");
-		do_movement(static_cast<GLfloat>(dt*(1/fps)));
+		do_movement(static_cast<GLfloat>(dt));
 		
 		app->tick(static_cast<GLfloat>(dt));
 

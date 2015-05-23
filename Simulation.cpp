@@ -110,8 +110,8 @@ void Simulation::emit_particles()
 	if(particle_count >= c::N)
 		return;
 
-	float const additional_margin = 0.8f;
-	float const placement_mod = 0.25f;
+	float const additional_margin = 0.5f;
+	float const placement_mod = 0.8f;
 	auto & particles = particle_system.particles;
 
 	for(float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
@@ -309,16 +309,16 @@ void Simulation::advance()
 	for(auto & p : particles)
 	{
 		// 0. semi-implicit Euler
-		// glm::vec3 newVel = p.velocity + p.acc()*dt;
-		// glm::vec3 newPos = p.position + newVel*dt;
+		 //glm::vec3 new_velocity = p.velocity + p.acc*dt;
+		 //glm::vec3 new_position = p.position + new_velocity*dt;
 
 		// 1. O(dt^3)
 		glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
 		glm::vec3 new_velocity = (new_position - p.position) / dt;
 
 		// 2. O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
-		// glm::vec3 newPos = 2.0*p.position - p.posPrev() + p.acc()*dt*dt;// r_(t+dt)
-		// glm::vec3 newVel = (newPos - p.position)/dt;// v_(t+dt)
+		//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
+		//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
 
 		p.previous_position = p.position;
 		p.position = new_position;
