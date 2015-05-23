@@ -16,8 +16,8 @@ void Simulation::run(float dt)
 
 	compute_density();
 	compute_forces();
-	advance();
 	resolve_collisions();
+	advance();
 
 	// tutaj bo Painter::paint() jest const
 	particle_system.update_buffers();
@@ -26,6 +26,7 @@ void Simulation::run(float dt)
 void Simulation::bin_particles_in_grid()
 {
 	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
 
 	auto & particles = particle_system.particles;
 	auto & grid = this->grid.grid;
@@ -33,16 +34,15 @@ void Simulation::bin_particles_in_grid()
 	for(auto & i : particles)
 	{
 		// rozwiazanie na kiedy uzyskam dobrze dzialajacy mechanizm kolizji (gdzie czasteczki nie beda wypadac na orbite/poza 'pudelko')
-		//glm::vec3 particle_position_vector = i.position;
-		//if(out_of_grid_scope(particle_position_vector))
-		//	continue;
-		//int c = get_cell_index(particle_position_vector);
-
-		int c = get_cell_index(i.position);
-
-		// temporary hack
-		if(c < 0 || c >= c::C)
+		glm::vec3 particle_position_vector = i.position;
+		if(out_of_grid_scope(particle_position_vector))
 			continue;
+		int c = get_cell_index(particle_position_vector);
+
+		//int c = get_cell_index(i.position);
+		//// temporary hack
+		//if(c < 0 || c >= c::C)
+		//	continue;
 
 		if(grid[c].no_particles == 0)
 			grid[c].first_particle = &i;
@@ -350,30 +350,46 @@ void Simulation::resolve_collisions()
 			auto const & wall_position = walls_positions[j];
 			auto const & wall_normal = walls_normals[j];
 
-			float d = c::H;
-			float dist2 = fabs(dot(wall_position - tp.position, wall_normal) + particleBounceRadius);
 
-			// distance method:
-			// http://sccg.sk/~durikovic/publications/Pub09_11_files/SCCG2010_SPH_Flood.pdf
-			if(dist2 < d)//dist2 < d
+			// fluids method --------------------------------------------------
+			// c::H - particle radius
+			float simulation_scale = 1.0f;
+			float epsilon = 0.00001f;
+			float wall_particle_distance = c::H - fabs(dot(wall_position - tp.position, wall_normal)*simulation_scale);
+
+			if(wall_particle_distance > epsilon)
 			{
-				static const float c = 4.5f;
-
-				// if(tp.velocity*wallNormal < glm::vec3(0.0f, 0.0f, 0.0f))
-				tp.velocity += c*(2.0f*d - dist2)*wall_normal;
+				float spring = c::wall_stiffness*wall_particle_distance + c::wall_damping*dot(wall_normal, tp.velocity);
+				tp.acc += spring*wall_normal;
 			}
 
-			if(dist2 < 0.01f && false)// dist2 < 0.0f
-			{
+			// ----------------------------------------------------------------
+
+
+			//float d = c::H;
+			//float dist2 = fabs(dot(wall_position - tp.position, wall_normal) + particleBounceRadius);
+
+			//// distance method:
+			//// http://sccg.sk/~durikovic/publications/Pub09_11_files/SCCG2010_SPH_Flood.pdf
+			//if(dist2 < d)//dist2 < d
+			//{
+			//	static const float c = 4.5f;
+
+			//	// if(tp.velocity*wallNormal < glm::vec3(0.0f, 0.0f, 0.0f))
+			//	tp.velocity += c*(2.0f*d - dist2)*wall_normal;
+			//}
+
+			//if(dist2 < 0.01f)// dist2 < 0.0f
+			//{
 				// 1.
 				// tp.acc() += c::wallStiffness * wallNormal * dist2;
 				// tp.acc() += c::wallDamping * dot(tp.position, wallNormal) * wallNormal;
 				// 2.
-				float velNorm = glm::length(tp.velocity);//sqrt(dot(tp.velocity, tp.velocity));
-				tp.position += fabs(dist2)*wall_normal;
+				// float velNorm = glm::length(tp.velocity);//sqrt(dot(tp.velocity, tp.velocity));
+				// tp.position += fabs(dist2)*wall_normal;
 				// tp.velocity -= 2.0*dot(tp.velocity, wallNormal)*wallNormal;// kelager (4.56)
 				// tp.velocity -= (1.0 + cR)*dot(tp.velocity, wallNormal)*wallNormal;// kelager (4.57)
-				tp.velocity -= (1.0f + cR*(fabs(dist2) / (c::dt*velNorm)))*dot(tp.velocity, wall_normal)*wall_normal;// kelager (4.58)
+				// tp.velocity -= (1.0f + cR*(fabs(dist2) / (c::dt*velNorm)))*dot(tp.velocity, wall_normal)*wall_normal;// kelager (4.58)
 
 				// 3.
 				// tp.velocity += fabs(dist2) * wallNormal / dt;
@@ -398,7 +414,7 @@ void Simulation::resolve_collisions()
 				// jesli wykrylem kolizje to licze ja tylko dla jednej sciany
 				// fix zeby naprawic zrabane normalne scin w rogach
 				// break;
-			}
+			//}
 		}
 	}
 }

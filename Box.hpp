@@ -5,8 +5,9 @@
 #include "Paintable.hpp"
 
 
-struct Box : public Paintable
+class Box : public Paintable
 {
+public:
 	// http://www.ntu.edu.sg/home/ehchua/programming/opengl/images/Graphics3D_RHS.png
 	Box() : position(0.0f)
 	{

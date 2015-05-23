@@ -20,8 +20,8 @@ namespace c
 	const float surfaceThreshold = 20.0f;
 	const float gravityAcc = -9.80665f;
 
-	// const float wallStiffness = -10000.0f;// im mniejsza tym sciany bardziej 'faluja'
-	// const float wallDamping = -0.9;
+	const float wall_stiffness = 50000.0f;// im mniejsza tym sciany bardziej 'faluja'
+	const float wall_damping = -100.0f;
 	const int width = 800;
 	const int height = 600;
 
@@ -46,7 +46,7 @@ namespace c
 
 namespace c
 {
-	const int N = 1500;// total particle count
+	const int N = 2000;// total particle count
 	const int K = 64, L = 64, M = 64;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -1.0, ymin = -1.0, zmin = -1.0;

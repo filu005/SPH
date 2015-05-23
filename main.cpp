@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
 	app = make_unique<Application>();
 	double t0 = glfwGetTime();
-	double dt;
+	double dt, fps;
 
 	// Game loop
 	while(!glfwWindowShouldClose(window))
@@ -78,9 +78,9 @@ int main(int argc, char* argv[])
 
 		// Check and call events
 		glfwPollEvents();
-		do_movement(static_cast<GLfloat>(dt));
 
-		calcFPS(window, 1.0, "");
+		fps = calcFPS(window, 1.0, "");
+		do_movement(static_cast<GLfloat>(dt*(1/fps)));
 		
 		app->tick(static_cast<GLfloat>(dt));
 
