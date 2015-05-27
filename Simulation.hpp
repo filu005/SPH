@@ -1,5 +1,6 @@
 #pragma once
 #include "ParticleSystem.hpp"
+#include "MCMesh.hpp"
 #include "Grid.hpp"
 #include "Box.hpp"
 
@@ -13,6 +14,7 @@ public:
 
 	// main components and also Paintables
 	ParticleSystem particle_system;
+	MCMesh mesh;
 	Box bounding_box;
 	Grid grid;
 

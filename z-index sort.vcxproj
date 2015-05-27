@@ -77,6 +77,8 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MarchingCubes.cpp" />
+    <ClCompile Include="MCMesh.cpp" />
     <ClCompile Include="Painter.cpp" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="ParticleSystem.cpp" />
@@ -88,6 +90,9 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="constants.hpp" />
     <ClInclude Include="Grid.hpp" />
+    <ClInclude Include="MarchingCubes.h" />
+    <ClInclude Include="MCMesh.hpp" />
+    <ClInclude Include="MCTable.h" />
     <ClInclude Include="Paintable.hpp" />
     <ClInclude Include="Painter.hpp" />
     <ClInclude Include="Particle.hpp" />

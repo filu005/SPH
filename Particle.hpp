@@ -16,6 +16,7 @@ struct Particle
 	glm::vec3 force;
 	float density;
 	float pressure;
+	float color_field_gradient_magnitude;
 
 	int id;
 	static int no_particles;

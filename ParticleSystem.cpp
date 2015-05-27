@@ -6,20 +6,54 @@
 
 namespace particle_system
 {
-	int get_cell_index(const glm::vec3 v)
+	//int get_cell_index(const glm::vec3 v)
+	//{
+	//	using namespace c;
+	//	return static_cast<int>(
+	//		floor((v.x - xmin) / dx) + 
+	//		floor((v.y - ymin) / dy) * (float) K + 
+	//		floor((v.z - zmin) / dz) * (float) K * (float) L
+	//		);
+	//}
+
+	inline int get_cell_index(const glm::vec3 v)
 	{
-		using namespace c;
-		return static_cast<int>(
-			floor((v.x - xmin) / dx) + 
-			floor((v.y - ymin) / dy) * (float) K + 
-			floor((v.z - zmin) / dz) * (float) K * (float) L
-			);
+		return static_cast<int>(get_z_index(get_grid_coords(v)));
+	}
+
+	glm::ivec3 get_grid_coords(glm::vec3 const v)
+	{
+		return glm::ivec3(floor((v.x - c::xmin) / c::dx), floor((v.y - c::ymin) / c::dy), floor((v.z - c::zmin) / c::dz));
 	}
 
 	bool out_of_grid_scope(const glm::vec3 v)
 	{
 		using namespace c;
 		return v.x < xmin || v.x > xmax || v.y < ymin || v.y > ymax || v.z < zmin || v.z > zmax;
+	}
+
+	inline uint64_t get_z_index(glm::ivec3 const v)
+	{
+		return mortonEncode_magicbits(v.x, v.y, v.z);
+	}
+
+	// http://www.forceflow.be/2013/10/07/morton-encodingdecoding-through-bit-interleaving-implementations/
+	inline uint64_t mortonEncode_magicbits(unsigned int x, unsigned int y, unsigned int z)
+	{
+		uint64_t answer = 0;
+		answer |= splitBy3(x) | splitBy3(y) << 1 | splitBy3(z) << 2;
+		return answer;
+	}
+
+	inline uint64_t splitBy3(unsigned int a)
+	{
+		uint64_t x = a & 0x1fffff; // we only look at the first 21 bits
+		x = (x | x << 32) & 0x1f00000000ffff;  // shift left 32 bits, OR with self, and 00011111000000000000000000000000000000001111111111111111
+		x = (x | x << 16) & 0x1f0000ff0000ff;  // shift left 32 bits, OR with self, and 00011111000000000000000011111111000000000000000011111111
+		x = (x | x << 8) & 0x100f00f00f00f00f; // shift left 32 bits, OR with self, and 0001000000001111000000001111000000001111000000001111000000000000
+		x = (x | x << 4) & 0x10c30c30c30c30c3; // shift left 32 bits, OR with self, and 0001000011000011000011000011000011000011000011000011000100000000
+		x = (x | x << 2) & 0x1249249249249249;
+		return x;
 	}
 }
 
@@ -151,6 +185,14 @@ void ParticleSystem::update_buffers()
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * c::N, &this->bin_idx[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
+{
+	auto position_color_field_data = make_unique<glm::vec4[]>(c::N);
+	for(int i = 0; i < c::N; ++i)
+		position_color_field_data[i] = glm::vec4(particles[i].position, particles[i].color_field_gradient_magnitude);
+	return position_color_field_data;
 }
 
 void ParticleSystem::move_particles_around(float dt)

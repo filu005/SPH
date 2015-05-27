@@ -3,6 +3,7 @@
 // http://www.gamasutra.com/view/feature/131565/building_an_advanced_particle_.php
 
 #include <array>
+#include <memory>
 
 #include "Particle.hpp"
 #include "Paintable.hpp"
@@ -10,8 +11,12 @@
 
 namespace particle_system
 {
-	int get_cell_index(const glm::vec3 v);
+	inline int get_cell_index(const glm::vec3 v);
+	glm::ivec3 get_grid_coords(glm::vec3 const v);
 	bool out_of_grid_scope(const glm::vec3 v);
+	inline uint64_t get_z_index(glm::ivec3 const v);
+	inline uint64_t mortonEncode_magicbits(unsigned int x, unsigned int y, unsigned int z);
+	inline uint64_t splitBy3(unsigned int a);
 }
 
 class ParticleSystem : public Paintable
@@ -28,6 +33,7 @@ public:
 	void reset_buffers();
 	void move_particles_around(float dt);
 	void update_buffers();
+	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
 	void insert_sort_particles_by_indices();
 

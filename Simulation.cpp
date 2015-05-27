@@ -20,6 +20,7 @@ void Simulation::run(float dt)
 	advance();
 
 	// tutaj bo Painter::paint() jest const
+	//mesh.generate_mesh(particle_system.get_position_color_field_data());
 	particle_system.update_buffers();
 }
 
@@ -27,6 +28,8 @@ void Simulation::bin_particles_in_grid()
 {
 	using particle_system::get_cell_index;
 	using particle_system::out_of_grid_scope;
+	using particle_system::get_grid_coords;
+	using particle_system::get_z_index;
 
 	auto & particles = particle_system.particles;
 	auto & grid = this->grid.grid;
@@ -37,7 +40,8 @@ void Simulation::bin_particles_in_grid()
 		glm::vec3 particle_position_vector = i.position;
 		if(out_of_grid_scope(particle_position_vector))
 			continue;
-		int c = get_cell_index(particle_position_vector);
+		int c = get_cell_index(particle_position_vector);//sorted_particles_cell_indexes
+		//int c = get_z_index(get_grid_coords(particle_position_vector));
 
 		//int c = get_cell_index(i.position);
 		//// temporary hack
@@ -111,7 +115,7 @@ void Simulation::emit_particles()
 		return;
 
 	float const additional_margin = 0.5f;
-	float const placement_mod = 0.8f;
+	float const placement_mod = 0.5f;
 	auto & particles = particle_system.particles;
 
 	for(float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
@@ -291,7 +295,7 @@ void Simulation::compute_forces()
 			totalF = pressureF + viscosityF + surfacetensionF + externalF;
 
 			particle_i.acc = totalF / particle_i.density;
-			//printf("(%f, %f) ,, ", particle_i.acc.x, particle_i.acc.y);
+			particle_i.color_field_gradient_magnitude = colorFieldGradMag;
 
 			++particle_i_ptr;
 

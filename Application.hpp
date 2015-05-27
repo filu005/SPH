@@ -21,6 +21,6 @@ public:
 private:
 	Simulation _sim;
 	std::vector<Paintable*> _paintables;
-	//std::array<Paintable*, 2> _paintables;
+
 	Painter _painter;
 };

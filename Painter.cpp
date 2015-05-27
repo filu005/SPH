@@ -6,6 +6,7 @@
 
 #include "Box.hpp"
 #include "Grid.hpp"
+#include "MCMesh.hpp"
 #include "ParticleSystem.hpp"
 #include "Camera.hpp"
 #include "Painter.hpp"
@@ -13,6 +14,7 @@
 Painter::Painter() : bounding_box_shader("./shaders/bounding_box.vert", "./shaders/default.frag"),
 					 shader{ Shader("./shaders/default.vert", "./shaders/default.frag") },
 					 particle_bin_shader{ Shader("./shaders/particle_bin.vert", "./shaders/default.frag") },
+					 mesh_shader("./shaders/mesh.vert", "./shaders/mesh.frag"),
 					 camera_ref(nullptr)
 {
 
@@ -82,6 +84,36 @@ void Painter::paint(Grid const & grid)
 	glDrawElementsInstanced(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0, grid.bin_count);
 	glDrawElementsInstanced(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, (GLvoid*) (4 * sizeof(GLuint)), grid.bin_count);
 	glDrawElementsInstanced(GL_LINES, 8, GL_UNSIGNED_INT, (GLvoid*) (8 * sizeof(GLuint)), grid.bin_count);
+	glBindVertexArray(0);
+}
+
+void Painter::paint(MCMesh const & msh)
+{
+	mesh_shader.Use();
+
+	// Create transformations
+	glm::mat4 view;
+	glm::mat4 model;
+	glm::mat4 projection;
+	assert(camera_ref != nullptr);
+	auto const camera = *camera_ref;
+
+	view = camera.GetViewMatrix();
+	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
+
+	// Get their uniform location
+	GLint viewLoc = glGetUniformLocation(mesh_shader.Program, "view");
+	GLint modelLoc = glGetUniformLocation(mesh_shader.Program, "model");
+	GLint projLoc = glGetUniformLocation(mesh_shader.Program, "projection");
+	// Pass them to the shaders
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	auto const & VAO = msh.getVAO();
+
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, msh.no_vertices);
 	glBindVertexArray(0);
 }
 
