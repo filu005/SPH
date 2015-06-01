@@ -7,7 +7,7 @@ namespace c
 	const float PIf = 3.14159265358979323846f;
 	// "The larger the timestep, the smaller the smoothing kernel and the higher the stiffness,
 	// the more likely the system is to explode."
-	const float H = 0.04f;//0.045
+	const float H = 0.045f;//0.045
 	const float gasStiffness = 4.5f;// incompressibility can only be obtained as k -> infinity.
 #if SIMULATION_PAIR
 	const float restDensity = 1.f;
@@ -46,7 +46,7 @@ namespace c
 
 namespace c
 {
-	const int N = 9000;// total particle count
+	const int N = 10000;// total particle count
 	const int K = 64, L = 64, M = 64;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.5f;

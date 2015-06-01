@@ -6,20 +6,20 @@
 
 namespace particle_system
 {
-	//int get_cell_index(const glm::vec3 v)
-	//{
-	//	using namespace c;
-	//	return static_cast<int>(
-	//		floor((v.x - xmin) / dx) + 
-	//		floor((v.y - ymin) / dy) * (float) K + 
-	//		floor((v.z - zmin) / dz) * (float) K * (float) L
-	//		);
-	//}
-
-	inline int get_cell_index(const glm::vec3 v)
+	int get_cell_index(const glm::vec3 v)
 	{
-		return static_cast<int>(get_z_index(get_grid_coords(v)));
+		using namespace c;
+		return static_cast<int>(
+			floor((v.x - xmin) / dx) + 
+			floor((v.y - ymin) / dy) * (float) K + 
+			floor((v.z - zmin) / dz) * (float) K * (float) L
+			);
 	}
+
+	//inline int get_cell_index(const glm::vec3 v)
+	//{
+	//	return static_cast<int>(get_z_index(get_grid_coords(v)));
+	//}
 
 	glm::ivec3 get_grid_coords(glm::vec3 const v)
 	{
