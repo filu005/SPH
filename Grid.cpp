@@ -4,7 +4,7 @@
 
 GLfloat const Grid::cube_vertices[8*3] =
 {
-	0.0f, 0.0f, 0.0f, 
+	0.0f, 0.0f, 0.0f,
 	c::dx, 0.0f, 0.0f,
 	c::dx, c::dy, 0.0f,
 	0.0f, c::dy, 0.0f,
@@ -41,19 +41,19 @@ void Grid::setup_buffers(void)
 	for(float z = c::zmin; z < c::zmax; z += c::dz)
 		for(float y = c::ymin; y < c::ymax; y += c::dy)
 			for(float x = c::xmin; x < c::xmax; x += c::dx)
-				translations[index++] = glm::vec3(x, y, z);// inkrementacja nastepuje po odczytaniu wartosci indeksu
+				translations[index++] = glm::vec3(x, y, z);// post-increment
 
 	// Create buffers/arrays
 	glGenVertexArrays(1, &this->VAO);
 
 	glBindVertexArray(this->VAO);
-	
+
 	// Store instance data in an array buffer
 	glGenBuffers(1, &this->instance_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->instance_VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * c::C, &this->translations[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
+
 	glGenBuffers(1, &this->VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(this->cube_vertices), &this->cube_vertices[0], GL_STATIC_DRAW);
@@ -62,8 +62,8 @@ void Grid::setup_buffers(void)
 	glGenBuffers(1, &this->EBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(this->cube_indices), &this->cube_indices[0], GL_STATIC_DRAW);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);// - nie rob tego tutej!
-	
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);// - no no no!
+
 	// Set the vertex attribute pointers
 	// Vertex Positions
 	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);

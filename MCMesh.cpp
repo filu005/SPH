@@ -2,6 +2,7 @@
 
 #include "Painter.hpp"
 #include "ParticleSystem.hpp"
+#include "Grid.hpp"
 #include "MarchingCubes.h"
 #include "constants.hpp"
 #include "MCMesh.hpp"
@@ -48,13 +49,14 @@ void MCMesh::setup_buffers(void)
 	glBindVertexArray(0);
 }
 
-void MCMesh::generate_mesh(std::unique_ptr<glm::vec4[]> points)
+void MCMesh::generate_mesh(std::array<GridCell, c::C> const & grid)
 {
+	using namespace c;
 	using particle_system::get_cell_index;
 	//initialize data to be passed to Marching Cubes
 	
-	//auto mc_points = make_unique<glm::vec4[]>((c::K + 1)*(c::L + 1)*(c::M + 1));
-	//glm::vec3 stepSize(c::dx, c::dy, c::dz);
+	auto mc_points = make_unique<glm::vec4[]>((c::K + 1)*(c::L + 1)*(c::M + 1));
+	glm::vec3 stepsize(c::dx, c::dy, c::dz);
 	//for(int i = 0; i < c::N; ++i)
 	//{
 	//	glm::vec4 p = points[i];
@@ -68,21 +70,23 @@ void MCMesh::generate_mesh(std::unique_ptr<glm::vec4[]> points)
 	//		mc_points[c] = 0;
 	//}
 
-	//for(int i = 0; i < c::K + 1; i++)
-	//	for(int j = 0; j < c::L + 1; j++)
-	//		for(int k = 0; k < c::M + 1; k++)
-	//		{
-	//			//glm::vec4 vert(MINX + i*stepSize.x, MINY + j*stepSize.y, MINZ + k*stepSize.z, 0);
-	//			glm::vec4 vert(MINX + i*stepSize.x, MINY + j*stepSize.y, MINZ + k*stepSize.z, 0);
-	//			vert.w = Potential2((glm::vec3) vert);
+	// tymczasowo dla uproszczenia: siatka dla MC jest (prawie)
+	// identyczna jak siatka z posortowanymi czasteczkami
+	// (tj. ma wymiary <K+1,L+1,M+1>)
+	for(int i = 0; i < c::K + 1; i++)
+		for(int j = 0; j < c::L + 1; j++)
+			for(int k = 0; k < c::M + 1; k++)
+			{
+				glm::vec4 vert(c::xmin + i*stepsize.x, c::ymin + j*stepsize.y, c::zmin + k*stepsize.z, 0);
+				vert.w = get_isosurface_potential((glm::vec3) vert, grid);
 
-	//			mcPoints[i*(nY + 1)*(nZ + 1) + j*(nZ + 1) + k] = vert;
-	//		}
+				mc_points[i*(c::L + 1)*(c::M + 1) + j*(c::M + 1) + k] = vert;
+			}
 
 	int no_triangles = 0;
 	float minValue = 0.0f;
 
-	auto triangles = MarchingCubes(c::K, c::L, c::M, c::dx, c::dy, c::dz, minValue, std::move(points), no_triangles);
+	auto triangles = MarchingCubes(c::K, c::L, c::M, c::dx, c::dy, c::dz, minValue, std::move(mc_points), no_triangles);
 
 	this->no_vertices = no_triangles * 3;
 
@@ -94,6 +98,29 @@ void MCMesh::generate_mesh(std::unique_ptr<glm::vec4[]> points)
 		}
 
 	update_buffers();
+}
+
+float MCMesh::get_isosurface_potential(const glm::vec3 p, std::array<GridCell, c::C> const & grid)
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+
+	assert(!out_of_grid_scope(p));
+
+	// w sumie cell index juz mam bo iteruje po wszystkich indeksach
+	// w petli gdzie wywolywana jest ta funkcja
+	int cell_idx = get_cell_index(p);
+
+	Particle * particle_ptr = grid[cell_idx].first_particle;
+
+	for(int j = 0; j < grid[cell_idx].no_particles; ++j)
+	{
+		Particle& particle = *particle_ptr;
+
+		glm::vec3 rVec = particle.position;
+
+		++particle_ptr;
+	}
 }
 
 void MCMesh::update_buffers()
