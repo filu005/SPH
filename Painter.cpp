@@ -7,6 +7,7 @@
 #include "Box.hpp"
 #include "Grid.hpp"
 #include "MCMesh.hpp"
+#include "DistanceField.hpp"
 #include "ParticleSystem.hpp"
 #include "Camera.hpp"
 #include "Painter.hpp"
@@ -15,6 +16,8 @@ Painter::Painter() : bounding_box_shader("./shaders/bounding_box.vert", "./shade
 					 shader{ Shader("./shaders/default.vert", "./shaders/default.frag") },
 					 particle_bin_shader{ Shader("./shaders/particle_bin.vert", "./shaders/default.frag") },
 					 mesh_shader("./shaders/mesh.vert", "./shaders/mesh.frag"),
+					 distance_field_raymarching("./shaders/distance_field_raymarching.vert", "./shaders/distance_field_raymarching2.frag"),
+					 color_cube_framebuffer_shader("./shaders/color_cube_framebuffer.vert", "./shaders/color_cube_framebuffer.frag"),
 					 camera_ref(nullptr)
 {
 
@@ -115,6 +118,118 @@ void Painter::paint(MCMesh const & msh)
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_TRIANGLES, 0, msh.no_vertices);
 	glBindVertexArray(0);
+}
+
+void Painter::paint(DistanceField const & df)
+{
+	paint_to_framebuffer(df);
+	distance_field_raymarching.Use();
+
+	GLuint front_volume_texture, back_volume_texture;
+	std::tie(front_volume_texture, back_volume_texture) = df.get_front_back_color_cube_textures();
+
+	// Create transformations
+	glm::mat4 view;
+	glm::mat4 model;
+	glm::mat4 projection;
+	assert(camera_ref != nullptr);
+	auto const camera = *camera_ref;
+
+	view = camera.GetViewMatrix();
+	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
+
+	// Get their uniform location
+	GLint viewLoc = glGetUniformLocation(distance_field_raymarching.Program, "view");
+	GLint modelLoc = glGetUniformLocation(distance_field_raymarching.Program, "model");
+	GLint projLoc = glGetUniformLocation(distance_field_raymarching.Program, "projection");
+	// Pass them to the shaders
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, df.get_density_texture());
+	glUniform1i(glGetUniformLocation(distance_field_raymarching.Program, "density_texture"), 0);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, front_volume_texture);
+	glUniform1i(glGetUniformLocation(distance_field_raymarching.Program, "front_volume_texture"), 1);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, back_volume_texture);
+	glUniform1i(glGetUniformLocation(distance_field_raymarching.Program, "back_volume_texture"), 2);
+
+	auto const & VAO = df.getVAO();
+
+	// Draw cube
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+}
+
+void Painter::paint_to_framebuffer(DistanceField const & df)
+{
+	GLuint const front_back_volume_FBO = df.get_front_back_volume_FBO();
+	GLuint front_volume_texture, back_volume_texture;
+	std::tie(front_volume_texture, back_volume_texture) = df.get_front_back_color_cube_textures();
+
+	glBindFramebuffer(GL_FRAMEBUFFER, front_back_volume_FBO);
+	color_cube_framebuffer_shader.Use();
+
+	//glEnable(GL_DEPTH_TEST);
+
+	glm::mat4 view;
+	glm::mat4 model;
+	glm::mat4 projection;
+	assert(camera_ref != nullptr);
+	auto const camera = *camera_ref;
+
+	view = camera.GetViewMatrix();
+	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
+
+	// Get their uniform location
+	GLint viewLoc = glGetUniformLocation(color_cube_framebuffer_shader.Program, "view");
+	GLint modelLoc = glGetUniformLocation(color_cube_framebuffer_shader.Program, "model");
+	GLint projLoc = glGetUniformLocation(color_cube_framebuffer_shader.Program, "projection");
+	// Pass them to the shaders
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	auto const & VAO = df.getVAO();
+
+	// Draw cube
+	GLenum buffer1[] = { GL_COLOR_ATTACHMENT0, GL_NONE };
+	glDrawBuffers(2, buffer1);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glBindVertexArray(VAO);
+	glBindTexture(GL_TEXTURE_2D, front_volume_texture);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+
+	// Draw reverse cube - it's back faces
+	GLenum buffer2[] = { GL_NONE, GL_COLOR_ATTACHMENT1};
+	glDrawBuffers(2, buffer2);
+
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
+	
+	glBindVertexArray(VAO);
+	glBindTexture(GL_TEXTURE_2D, back_volume_texture);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+
+	glCullFace(GL_BACK);
+	glDisable(GL_CULL_FACE);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Painter::paint(ParticleSystem const & ps)

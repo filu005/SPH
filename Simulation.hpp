@@ -1,5 +1,8 @@
 #pragma once
+#include <vector>
+
 #include "ParticleSystem.hpp"
+#include "DistanceField.hpp"
 #include "MCMesh.hpp"
 #include "Grid.hpp"
 #include "Box.hpp"
@@ -14,6 +17,7 @@ public:
 
 	// main components and also Paintables
 	ParticleSystem particle_system;
+	DistanceField distance_field;
 	MCMesh mesh;
 	Box bounding_box;
 	Grid grid;
@@ -21,6 +25,7 @@ public:
 private:
 	void bin_particles_in_grid();
 	void iterate_through_all_neighbours();
+	std::vector<Particle> extract_surface_particles();
 
 	void emit_particles();
 	void compute_density();

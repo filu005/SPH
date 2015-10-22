@@ -13,6 +13,7 @@ namespace particle_system
 {
 	inline int get_cell_index(const glm::vec3 v);
 	glm::ivec3 get_grid_coords(glm::vec3 const v);
+	glm::vec3 get_grid_coords_in_real_system(glm::vec3 const v);
 	bool out_of_grid_scope(const glm::vec3 v);
 	inline uint64_t get_z_index(glm::ivec3 const v);
 	inline uint64_t mortonEncode_magicbits(unsigned int x, unsigned int y, unsigned int z);
@@ -49,9 +50,11 @@ private:
 	GLuint const static sphere_indices[576];
 	std::array<glm::mat4, c::N> model_matrices;
 	GLfloat bin_idx[c::N];
+	GLuint surface_particles[c::N];
 
 	// OpenGL
 	GLuint EBO;
 	GLuint model_mat_VBO;
 	GLuint bin_idx_VBO;
+	GLuint at_surface_VBO;
 };

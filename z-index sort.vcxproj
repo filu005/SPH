@@ -38,7 +38,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -63,6 +65,9 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\libs\SOIL\src;C:\libs\glm;C:\libs\glfw-3.0.4.bin.WIN32\include;C:\libs\glew-1.11.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/Zo %(AdditionalOptions)</AdditionalOptions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -75,6 +80,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="DistanceField.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MarchingCubes.cpp" />
@@ -89,6 +95,7 @@
     <ClInclude Include="Application.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="constants.hpp" />
+    <ClInclude Include="DistanceField.hpp" />
     <ClInclude Include="Grid.hpp" />
     <ClInclude Include="MarchingCubes.h" />
     <ClInclude Include="MCMesh.hpp" />
@@ -97,6 +104,7 @@
     <ClInclude Include="Painter.hpp" />
     <ClInclude Include="Particle.hpp" />
     <ClInclude Include="ParticleSystem.hpp" />
+    <ClInclude Include="perlin.hpp" />
     <ClInclude Include="Shader.hpp" />
     <ClInclude Include="Simulation.hpp" />
     <ClInclude Include="Box.hpp" />

@@ -121,6 +121,8 @@ float MCMesh::get_isosurface_potential(const glm::vec3 p, std::array<GridCell, c
 
 		++particle_ptr;
 	}
+
+	return 0.f;
 }
 
 void MCMesh::update_buffers()

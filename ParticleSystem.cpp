@@ -26,6 +26,11 @@ namespace particle_system
 		return glm::ivec3(floor((v.x - c::xmin) / c::dx), floor((v.y - c::ymin) / c::dy), floor((v.z - c::zmin) / c::dz));
 	}
 
+	glm::vec3 get_grid_coords_in_real_system(glm::vec3 const v)
+	{
+		return glm::vec3(floorf((v.x - c::xmin) / c::dx)*c::dx + c::xmin, floorf((v.y - c::ymin) / c::dy)*c::dy + c::ymin, floorf((v.z - c::zmin) / c::dz)*c::dz + c::zmin);
+	}
+
 	bool out_of_grid_scope(const glm::vec3 v)
 	{
 		using namespace c;
@@ -80,6 +85,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+		surface_particles[index] = p.at_surface;
 		index++;
 	}
 
@@ -94,6 +100,11 @@ void ParticleSystem::setup_buffers(void)
 	glGenBuffers(1, &this->bin_idx_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * c::N, &this->bin_idx[0], GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &this->at_surface_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLuint) * c::N, &this->surface_particles[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &this->VBO);
@@ -122,6 +133,11 @@ void ParticleSystem::setup_buffers(void)
 	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*) 0);
 	glVertexAttribDivisor(1, 1);
 	//By setting the attribute divisor to 1 we're effectively telling OpenGL that the vertex attribute at attribute location x is an instanced array.
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 1, GL_UNSIGNED_INT, GL_FALSE, 0, (GLvoid*) 0);
+	glVertexAttribDivisor(6, 1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->model_mat_VBO);
 	// Set attribute pointers for matrix (4 x vec4)
@@ -152,7 +168,8 @@ void ParticleSystem::reset_buffers()
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(0);
 	//glDeleteBuffers(1, &this->EBO);
-	glDeleteBuffers(1, &this->VBO);
+	glDeleteBuffers(1, &this->VBO); 
+	glDeleteBuffers(1, &this->at_surface_VBO);
 	glDeleteBuffers(1, &this->bin_idx_VBO);
 	glDeleteBuffers(1, &this->model_mat_VBO);
 	glDeleteVertexArrays(1, &this->VAO);
@@ -167,12 +184,13 @@ void ParticleSystem::update_buffers()
 	int index = 0;
 	for(auto const & p : particles)
 	{
-		auto particle_position = p.position;
+		auto const particle_position = p.position;
 		glm::mat4 model;
 		model = glm::translate(model, particle_position);
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+		surface_particles[index] = p.at_surface;
 		index++;
 	}
 
@@ -184,6 +202,10 @@ void ParticleSystem::update_buffers()
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * c::N, &this->bin_idx[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLuint) * c::N, &this->surface_particles[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

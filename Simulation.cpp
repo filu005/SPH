@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "Simulation.hpp"
 
 
@@ -21,6 +23,7 @@ void Simulation::run(float dt)
 
 	// tutaj bo Painter::paint() jest const
 	//mesh.generate_mesh(particle_system.get_position_color_field_data());
+	extract_surface_particles();
 	particle_system.update_buffers();
 }
 
@@ -105,6 +108,87 @@ void Simulation::iterate_through_all_neighbours()
 			++particle_i;
 		}
 	}
+}
+
+
+std::vector<Particle> Simulation::extract_surface_particles()
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using particle_system::get_grid_coords_in_real_system;
+	using namespace c;
+
+	auto & grid = this->grid.grid;
+
+	std::vector<Particle> surface_particles;
+	std::vector<float> threshold_values;
+	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.1f));
+
+	// go through all grids
+	for(auto & i : grid)
+	{
+		Particle * particle_i_ptr = i.first_particle;
+
+		// go through all particles in grid [i]
+		for(int ii = 0; ii < i.no_particles; ++ii)
+		{
+			Particle & particle_i = *particle_i_ptr;
+			glm::vec3 center_mass_distance{ 0.f };
+			auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) +glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
+			glm::vec3 mass_x_position_sum{ 0.f };
+			auto mass_sum = 0.f;
+
+			// go through neighbours of particle [ii] in grid [i]
+			for(int z = -1; z <= 1; ++z)
+			{
+				for(int y = -1; y <= 1; ++y)
+				{
+					for(int x = -1; x <= 1; ++x)
+					{
+						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+						assert(!out_of_grid_scope(neighbour_cell_vector));
+
+						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+
+						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						{
+							Particle& particle_j = *particle_j_ptr;
+							// wydaje mi sie ze position_j_in_neighbourhood powinno byc potraktowane glm::abs()
+							// ale liczac bez wartosci bezwzglednej dostaje lepsze rezultaty
+							glm::vec3 position_j_in_neighbourhood = (neighbourhood_centre - particle_j.position);
+							mass_x_position_sum += c::particleMass * position_j_in_neighbourhood;
+							mass_sum += c::particleMass;
+
+							++particle_j_ptr;
+						}
+
+					}
+				}
+			}
+
+			//posumowane
+			center_mass_distance = mass_x_position_sum / mass_sum;
+
+			// if its distance to the center of mass of its neighborhood
+			// is larger than a certain threshold
+			if(glm::length(center_mass_distance) > c::centerMassThreshold)
+			{
+				particle_i.at_surface = true;
+				surface_particles.emplace_back(particle_i);
+			}
+			else
+				particle_i.at_surface = false;
+
+			threshold_values.push_back(glm::length(center_mass_distance));
+
+			++particle_i_ptr;
+		}
+	}
+	//std::cout << "surface_particles.size() " << surface_particles.size() << "\n";
+
+	return surface_particles;
 }
 
 void Simulation::emit_particles()

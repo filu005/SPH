@@ -10,7 +10,7 @@ struct Vertex
 	glm::vec3 n;
 };
 
-class GridCell;
+struct GridCell;
 
 class MCMesh : public Paintable
 {

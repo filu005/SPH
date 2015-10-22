@@ -17,6 +17,7 @@ struct Particle
 	float density;
 	float pressure;
 	float color_field_gradient_magnitude;
+	bool at_surface;
 
 	int id;
 	static int no_particles;
