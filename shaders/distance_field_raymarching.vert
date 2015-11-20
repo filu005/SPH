@@ -1,6 +1,6 @@
 #version 330 core
 layout (location = 0) in vec3 position;
-layout (location = 0) in vec3 tex_coords;
+// layout (location = 0) in vec3 tex_coords;
 
 out vec4 projected_pos_coords;
 

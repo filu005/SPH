@@ -11,7 +11,7 @@ void main()
 {
 	// diagonal of the cube
 	const float maxDist = sqrt(3.0);
-	const int numSamples = 256;
+	const int numSamples = 128;
 	const float scale = maxDist/float(numSamples);
  
 	//calculate projective cube's texture coordinates
@@ -28,6 +28,7 @@ void main()
 	vec3 pos = front;
 	vec3 dir = normalize(back - front);
 
+	// constant step
 	vec3 step_dir = dir*scale;
  
 	vec4 dst = vec4(0, 0, 0, 0);
@@ -37,21 +38,25 @@ void main()
 
 	for(int i = 0; i < numSamples; i++)
 	{
-		value = texture(density_texture, pos).r;
+		// sampling step size from distance field
+		value = texture(density_texture, pos).a;
+		step_dir = dir*value;
+
+		if(value <= 0.015f) // this const should be uniform value slightly bigger than c::rmin
+		{
+			src = vec4(value);
+			src.a *= 2.0f; //reduce the alpha to have a more transparent result 
 			 
-		src = vec4(value);
-		src.a *= .5f; //reduce the alpha to have a more transparent result 
+			//Front to back blending
+			// dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
+			// dst.a   = dst.a   + (1 - dst.a) * src.a     
+			src.rgb *= src.a;
+			dst = (1.0f - dst.a)*src + dst;     
 		 
-		//Front to back blending
-		// dst.rgb = dst.rgb + (1 - dst.a) * src.a * src.rgb
-		// dst.a   = dst.a   + (1 - dst.a) * src.a     
-		src.rgb *= src.a;
-		dst = (1.0f - dst.a)*src + dst;     
-	 
-		//break from the loop when alpha gets high enough
-		if(dst.a >= .95f)
-			break; 
-	 
+			//break from the loop when alpha gets high enough
+			if(dst.a >= .95f)
+				break; 
+		}
 		//advance the current position
 		pos += step_dir;
 	 

@@ -3,6 +3,7 @@
 
 #include "ParticleSystem.hpp"
 #include "DistanceField.hpp"
+#include "Skybox.hpp"
 #include "MCMesh.hpp"
 #include "Grid.hpp"
 #include "Box.hpp"
@@ -16,6 +17,7 @@ public:
 	void run(float dt);
 
 	// main components and also Paintables
+	Skybox skybox;
 	ParticleSystem particle_system;
 	DistanceField distance_field;
 	MCMesh mesh;

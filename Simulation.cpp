@@ -23,7 +23,7 @@ void Simulation::run(float dt)
 
 	// tutaj bo Painter::paint() jest const
 	//mesh.generate_mesh(particle_system.get_position_color_field_data());
-	extract_surface_particles();
+	distance_field.generate_field_from_surface_particles(extract_surface_particles());
 	particle_system.update_buffers();
 }
 
@@ -137,6 +137,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 			auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) +glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
 			glm::vec3 mass_x_position_sum{ 0.f };
 			auto mass_sum = 0.f;
+			auto neighbourhood_no = 0u;
 
 			// go through neighbours of particle [ii] in grid [i]
 			for(int z = -1; z <= 1; ++z)
@@ -161,6 +162,8 @@ std::vector<Particle> Simulation::extract_surface_particles()
 							mass_x_position_sum += c::particleMass * position_j_in_neighbourhood;
 							mass_sum += c::particleMass;
 
+							++neighbourhood_no;
+
 							++particle_j_ptr;
 						}
 
@@ -173,7 +176,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 
 			// if its distance to the center of mass of its neighborhood
 			// is larger than a certain threshold
-			if(glm::length(center_mass_distance) > c::centerMassThreshold)
+			if(glm::length(center_mass_distance) > c::centerMassThreshold || neighbourhood_no <= c::surfaceNeighbourhoodThreshold)
 			{
 				particle_i.at_surface = true;
 				surface_particles.emplace_back(particle_i);

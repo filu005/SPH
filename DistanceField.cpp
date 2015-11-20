@@ -1,6 +1,8 @@
+#include "Mathematics/GteIntpTricubic3.h"
 #include "Painter.hpp"
 #include "constants.hpp"
 #include "DistanceField.hpp"
+
 
 DistanceField::DistanceField() : voxel_field_size{64}
 {
@@ -42,7 +44,7 @@ void DistanceField::setup_buffers(void)
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*) (3 * sizeof(GLfloat)));
 
 	// create distance field in 3D texture
-	volume_texture = generate_field();
+	volume_texture = generate_voxel_texture3d();
 
 	glBindVertexArray(0);
 
@@ -80,6 +82,207 @@ void DistanceField::setup_buffers(void)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+int DistanceField::get_voxel_index(glm::vec3 const v) const
+{
+	using namespace c;
+	return static_cast<int>(
+		floor((v.x - xyzminV) / voxelSize) +
+		floor((v.y - xyzminV) / voxelSize) * static_cast<float>(voxelGridDimension) +
+		floor((v.z - xyzminV) / voxelSize) * static_cast<float>(voxelGridDimension) * static_cast<float>(voxelGridDimension)
+		);
+}
+
+bool DistanceField::out_of_voxel_grid_scope(glm::vec3 const idx) const
+{
+	using namespace c;
+	return idx.x >= c::voxelGridDimension || idx.x < 0 || idx.y >= c::voxelGridDimension || idx.y < 0 || idx.z >= c::voxelGridDimension || idx.z < 0;
+}
+
+void DistanceField::generate_field_from_surface_particles(std::vector<Particle> const & surface_particles)
+{
+	// will contain a distance from vertex to the closest surface particle
+	std::array<GLfloat, c::voxelGrid3dSize> voxel_grid;
+	voxel_grid.fill(c::rmax);
+
+	// for every surface particle
+	for(auto const & p : surface_particles)
+	{
+		auto const p_pos = p.position;
+		// bound it with 'bounding cube'
+
+		auto const bounding_cube_center_shift = std::floor(c::boundingCubeScale * 0.5f);
+		for(float i = -bounding_cube_center_shift; i <= bounding_cube_center_shift; ++i)
+		{
+			for(float j = -bounding_cube_center_shift; j <= bounding_cube_center_shift; ++j)
+			{
+				for(float k = -bounding_cube_center_shift; k <= bounding_cube_center_shift; ++k)
+				{
+					glm::vec3 voxel_pos{ p_pos.x + i * c::voxelSize, p_pos.y + j * c::voxelSize, p_pos.z + k * c::voxelSize };
+					auto p_voxel_dist = glm::length(p_pos - voxel_pos);
+
+					auto voxel_index = get_voxel_index(voxel_pos);
+					// it is possible to out of grid's scope
+					if(voxel_index >= c::voxelGrid3dSize)
+						continue;
+
+					auto current_dist = voxel_grid[voxel_index];
+
+					if(p_voxel_dist >= current_dist)
+						continue;
+					if(p_voxel_dist < c::rmin)
+						p_voxel_dist = c::rmin;
+					
+					voxel_grid[voxel_index] = p_voxel_dist;
+					
+				}
+			}
+		}
+		// and next particle
+	}
+
+	auto const voxel_grid_normals = generate_normals_for_voxel_field(voxel_grid);
+
+	// OpenGL part - transfer distance field to graphic card
+	std::array<GLfloat, c::voxelGrid3dSize * 4> rgba_data;
+
+	for(int i = 0; i < c::voxelGrid3dSize; ++i)
+	{
+		auto const normal = voxel_grid_normals[i];
+		rgba_data[i * 4] = normal.x;
+		rgba_data[i * 4 + 1] = normal.y;
+		rgba_data[i * 4 + 2] = normal.z;
+		rgba_data[i * 4 + 3] = voxel_grid[i];
+	}
+	
+
+	// upload to DistanceField::volume_texture
+	glBindTexture(GL_TEXTURE_3D, this->volume_texture);
+	glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, c::voxelGridDimension, c::voxelGridDimension, c::voxelGridDimension, GL_RGBA, GL_FLOAT, &rgba_data[0]);
+	glBindTexture(GL_TEXTURE_3D, 0);
+}
+
+std::array<glm::vec3, c::voxelGrid3dSize> DistanceField::generate_normals_for_voxel_field(std::array<GLfloat, c::voxelGrid3dSize> const & voxel_grid)
+{
+	auto const sample_size = 1;
+	std::array<glm::vec3, c::voxelGrid3dSize> voxel_grid_normals;
+
+	for(int z = 0; z < c::voxelGridDimension; ++z)
+	{
+		for(int y = 0; y < c::voxelGridDimension; ++y)
+		{
+			for(int x = 0; x < c::voxelGridDimension; ++x)
+			{
+				glm::vec3 v1(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
+				glm::vec3 v2 = v1;
+				auto vidx = [](int x, int y, int z) -> int { return x + y * c::voxelGridDimension + z * c::voxelGridDimension * c::voxelGridDimension; };
+
+				if(x >= sample_size && y >= sample_size && z >= sample_size &&
+					x < c::voxelGridDimension - sample_size && y < c::voxelGridDimension - sample_size && z < c::voxelGridDimension - sample_size)
+				{
+					v1.x = voxel_grid[vidx(x - sample_size, y, z)];
+					v2.x = voxel_grid[vidx(x + sample_size, y, z)];
+					v1.y = voxel_grid[vidx(x, y - sample_size, z)];
+					v2.y = voxel_grid[vidx(x, y + sample_size, z)];
+					v1.z = voxel_grid[vidx(x, y, z - sample_size)];
+					v2.z = voxel_grid[vidx(x, y, z + sample_size)];
+					
+				}
+				glm::vec3 normal = glm::normalize(v2 - v1);
+				if(std::isnan(normal.x))
+					normal = glm::vec3(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
+				
+				voxel_grid_normals[vidx(x, y, z)] = normal;
+			}
+		}
+	}
+
+	voxel_grid_normals = filter_voxel_field_normals(voxel_grid_normals);
+
+	return voxel_grid_normals;
+}
+
+
+std::array<glm::vec3, c::voxelGrid3dSize> DistanceField::filter_voxel_field_normals(std::array<glm::vec3, c::voxelGrid3dSize> & voxel_grid_normals)
+{
+	auto const sample = 3;
+	auto vidx = [](int x, int y, int z) -> int { return x + y * c::voxelGridDimension + z * c::voxelGridDimension * c::voxelGridDimension; };
+	std::array<glm::vec3, c::voxelGrid3dSize> filtered_normals;
+
+	for(int z = 0; z < c::voxelGridDimension; ++z)
+	{
+		for(int y = 0; y < c::voxelGridDimension; ++y)
+		{
+			for(int x = 0; x < c::voxelGridDimension; ++x)
+			{
+				auto const n = (sample - 1) / 2;
+				glm::vec3 average_vec(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
+				auto count = 0;
+
+				for(int k = z - n; k <= z + n; ++k)
+				{
+					for(int j = y - n; j <= y + n; ++j)
+					{
+						for(int i = x - n; i <= x + n; ++i)
+						{
+							if(out_of_voxel_grid_scope(glm::vec3(i, j, k)))
+								continue;
+
+							average_vec += voxel_grid_normals[vidx(i, j, k)];
+							++count;
+						}
+					}
+				}
+				average_vec /= static_cast<float>(count);
+				glm::vec3 gradient = glm::normalize(average_vec);
+				if(std::isnan(gradient.x))
+					gradient = glm::vec3(std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min());
+
+				filtered_normals[vidx(x, y, z)] = gradient;
+			}
+		}
+	}
+
+	return filtered_normals;
+}
+
+GLuint DistanceField::generate_voxel_texture3d()
+{
+	GLuint texid;
+	glGenTextures(1, &texid);
+
+	GLenum target = GL_TEXTURE_3D;
+	GLenum filter = GL_LINEAR;
+	GLenum address = GL_CLAMP_TO_BORDER;
+
+	glBindTexture(target, texid);
+
+	glTexParameteri(target, GL_TEXTURE_MAG_FILTER, filter);
+	glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filter);
+
+	glTexParameteri(target, GL_TEXTURE_WRAP_S, address);
+	glTexParameteri(target, GL_TEXTURE_WRAP_T, address);
+	glTexParameteri(target, GL_TEXTURE_WRAP_R, address);
+
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
+
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+	glTexImage3D(target,
+		0,
+		GL_RGBA,
+		c::voxelGridDimension,
+		c::voxelGridDimension,
+		c::voxelGridDimension,
+		0,
+		GL_RGBA,
+		GL_FLOAT,
+		NULL);
+
+	glBindTexture(target, 0);
+
+	return texid;
+}
+
 GLuint DistanceField::generate_field()
 {
 	GLuint texid;
@@ -98,7 +301,7 @@ GLuint DistanceField::generate_field()
 	glTexParameteri(target, GL_TEXTURE_WRAP_T, address);
 	glTexParameteri(target, GL_TEXTURE_WRAP_R, address);
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
 	GLubyte *data = new GLubyte[voxel_field_size*voxel_field_size*voxel_field_size];
 	auto rgba_data = make_unique<GLubyte[]>(voxel_field_size*voxel_field_size*voxel_field_size * 4);
@@ -139,9 +342,6 @@ GLuint DistanceField::generate_field()
 		rgba_data[i * 4 + 3] = data[i];
 	}
 
-	//for(int i = 0; i < voxel_field_size*voxel_field_size*voxel_field_size; ++i)
-	//	std::cout << (int)data[i] << "\n";
-
 	// upload
 	glTexImage3D(target,
 		0,
@@ -153,7 +353,7 @@ GLuint DistanceField::generate_field()
 		GL_RGBA,
 		GL_UNSIGNED_BYTE,
 		rgba_data.get());
-
+	
 	glBindTexture(target, 0);
 
 	delete[] data;

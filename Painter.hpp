@@ -3,6 +3,7 @@
 
 class Box;
 class Grid;
+class Skybox;
 class MCMesh;
 class DistanceField;
 class ParticleSystem;
@@ -16,18 +17,20 @@ public:
 
 	void paint(Box const & box);
 	void paint(Grid const & grid);
+	void paint(Skybox const & sb);
 	void paint(MCMesh const & msh);
 	void paint(DistanceField const & df);
 	void paint(ParticleSystem const & particle);
 
-	void paint_to_framebuffer(DistanceField const & df);
-
 	void set_camera(Camera const & camera) { camera_ref = &camera; }
 
 private:
+	void paint_to_framebuffer(DistanceField const & df);
+
 	Shader bounding_box_shader;
 	Shader shader;
 	Shader particle_bin_shader;
+	Shader skybox_shader;
 	Shader mesh_shader;
 	Shader distance_field_raymarching;
 	Shader color_cube_framebuffer_shader;

@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
 	glViewport(0, 0, c::width, c::height);
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	glEnable(GL_MULTISAMPLE);
 	glDisable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
@@ -161,7 +162,8 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void render(GLFWwindow* window)
 {
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.8f, 0.0f, 0.0f, 0.0f);
+	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	app->paint();

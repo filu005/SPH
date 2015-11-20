@@ -2,11 +2,13 @@
 
 Application::Application()
 {
+	_paintables.push_back(&_sim.skybox);
 	_paintables.push_back(&_sim.particle_system);
 	_paintables.push_back(&_sim.bounding_box);
 	_paintables.push_back(&_sim.distance_field);
 	//_paintables.push_back(&_sim.mesh);
 	//_paintables.push_back(&_sim.grid);
+	
 
 	_painter.set_camera(camera);
 }

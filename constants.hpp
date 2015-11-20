@@ -2,6 +2,7 @@
 
 #define SIMULATION_PAIR 0
 
+//simulation constans
 namespace c
 {
 	const float PIf = 3.14159265358979323846f;
@@ -47,7 +48,7 @@ namespace c
 // grid constants
 namespace c
 {
-	const int N = 10000;// total particle count
+	const int N = 6000;// total particle count
 	const int K = 32, L = 32, M = 32;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.5f;
@@ -60,5 +61,15 @@ namespace c
 // rendering constants
 namespace c
 {
-	auto const centerMassThreshold = 0.008f;//0.0358f;
+	auto const centerMassThreshold = 0.004f;
+	auto const surfaceNeighbourhoodThreshold = 16u;
+	auto const voxelGridDimension = 64;
+	auto const xyzmaxV = c::xmax;
+	auto const xyzminV = c::xmin;
+	auto const voxelSize = (c::xyzmaxV - c::xyzminV) / static_cast<float>(c::voxelGridDimension);// to samo co dx, dy, dz
+	auto const voxelGrid3dSize = c::voxelGridDimension * c::voxelGridDimension * c::voxelGridDimension;
+	auto const boundingCubeScale = 5.0f;
+	auto const boundingCubeRadius = c::voxelSize * c::boundingCubeScale;
+	auto const rmax = c::voxelSize * sqrt(3.0f);//0.0221
+	auto const rmin = 0.005f;
 }
