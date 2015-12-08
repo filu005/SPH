@@ -212,6 +212,7 @@ void Simulation::emit_particles()
 				Particle& tp = particles[particle_count];
 				tp.position = glm::vec3(x, y, z);
 				tp.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+				tp.eval_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
 				tp.previous_position = tp.position;
 				++particle_count;
 				if(particle_count >= c::N)
@@ -348,7 +349,7 @@ void Simulation::compute_forces()
 							}
 
 							colorFieldLap += LapW_poly6(r, c::H) / particle_j.density;
-							viscosityF += (particle_j.velocity - particle_i.velocity) / particle_j.density*LapW_viscosity(r, c::H);
+							viscosityF += (particle_j.velocity - particle_i.velocity) / particle_j.density*LapW_viscosity(r, c::H);//eval_velocity
 
 							if(particle_i.id == particle_j.id)
 							{
@@ -410,9 +411,16 @@ void Simulation::advance()
 		// 2. O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
 		//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
 		//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
+		
+		// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
+		//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
+		//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
+		//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
+		//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
 
 		p.previous_position = p.position;
 		p.position = new_position;
+		//p.eval_velocity = eval_velocity;
 		p.velocity = new_velocity;
 
 		potential_force += p.position[1] * fabs(p.acc[1]);
@@ -450,7 +458,7 @@ void Simulation::resolve_collisions()
 
 			if(wall_particle_distance > epsilon)
 			{
-				float spring = c::wall_stiffness*wall_particle_distance + c::wall_damping*dot(wall_normal, tp.velocity);
+				float spring = c::wall_stiffness*wall_particle_distance + c::wall_damping*dot(wall_normal, tp.velocity);//eval_velocity
 				tp.acc += spring*wall_normal;
 			}
 
