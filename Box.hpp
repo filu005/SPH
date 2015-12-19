@@ -18,6 +18,9 @@ public:
 		surface_positions[4] = glm::vec3(0, 0, c::zmin); surface_normals[4] = glm::vec3(0, 0, c::zmax);// front
 		surface_positions[5] = glm::vec3(0, 0, c::zmax); surface_normals[5] = glm::vec3(0, 0, c::zmin);// back
 
+		for(auto & normal : surface_normals)
+			normal = glm::normalize(normal);
+
 		setup_buffers();
 	}
 

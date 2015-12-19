@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 
-#include "perlin.hpp"
+//#include "perlin.hpp"
 
 #include "Particle.hpp"
 #include "Paintable.hpp"
@@ -27,8 +27,6 @@ public:
 	}
 	GLuint const get_front_back_volume_FBO() const { return front_back_volume_FBO; }
 
-	GLsizei const voxel_field_size;// to samo co c::voxelGridDimension
-
 private:
 	GLuint generate_field();
 	GLuint generate_voxel_texture3d();
@@ -39,15 +37,18 @@ private:
 	int get_voxel_index(glm::vec3 const v) const;
 	bool out_of_voxel_grid_scope(glm::vec3 const v) const;
 
-	std::unique_ptr<perlin::Noise3D> perlin_noise_gen;
-	perlin::NoiseFactory noise_factory;
+	//std::unique_ptr<perlin::Noise3D> perlin_noise_gen;
+	//perlin::NoiseFactory noise_factory;
 
 	// opengl
+	GLuint EBO;
 	GLuint volume_texture;
 	GLuint front_back_volume_FBO;
 	GLuint front_volume_texture, back_volume_texture;
 	GLuint depth_volume_RBO;
 
 	// data
-	GLfloat const static box_data[216];
+	GLfloat const static box_data[108];
+	GLfloat const static box_vertices[8 * 3];
+	GLuint const static box_indices[36];
 };

@@ -9,21 +9,24 @@ uniform mat4 model;
 in vec4 projected_pos_coords;
 
 out vec4 color;
- 
+
 void main()
 {
-	vec3 g_lightPos = vec3(2.0, 2.0, 2.5);
-	vec3 g_lightIntensity = vec3(3.3, 3.2, 3.3);
-	float g_absorption = 5.25;
+	vec3 g_lightPos = vec3(3.0, 0.5, 0.5);
+	vec3 g_lightIntensity = vec3(1.3, 1.2, 3.3);
+	float g_absorption = 2.25;
 	// diagonal of the cube
 	const float maxDist = sqrt(3.0);
- 
-	const int numSamples = 256;
+
+	// increases the number of steps for a single ray
+	const float sampling_quality = 1.0f/8.0f;
+
+	const int numSamples = 64 * int(1.0f/sampling_quality);
 	const float scale = maxDist/float(numSamples);
  
-	const int numLightSamples = 64;
+	const int numLightSamples = 256;
 	const float lscale = maxDist / float(numLightSamples);
- 
+
 	//calculate projective cube's texture coordinates
 	//used to project the front and back position textures onto the cube
 	vec2 projected_cube_coords = vec2(((projected_pos_coords.x / projected_pos_coords.w) + 1.0f ) / 2.0f,
@@ -47,9 +50,17 @@ void main()
 	
 	vec3 surface_pos = vec3(0.0f, 0.0f, 0.0f);
 	
-	int i;
-	for (i=0; i < numSamples; ++i)
+	for (int i=0; i < numSamples; ++i)
 	{
+		// If you want a texture access to return the exact value stored
+		// at a voxel despite using GL_LINEAR you can make sure that your
+		// texture coordinates fall at the center of a voxel. For example
+		// to sample the value at voxel location (ix, iy, iz) from a texture
+		// of size (sx, sy, sz) use texture coordinates
+		// ((ix+0.5)/sx), (iy+0.5)/sy, (iz+0.5)/sz)), where ix,iy,iz is
+		// the zero based integer location of the voxel.
+
+
 		// sample density
 		// sampling step size from distance field
 		float density = texture(density_texture, pos).a;
@@ -58,7 +69,6 @@ void main()
 		// skip empty space
 		if (density <= 0.025f) // this const should be uniform value, slightly bigger than c::rmin, 0.015f
 		{
-			//if(all(equal(surface_pos, vec3(0.0f, 0.0f, 0.0f))))
 			//if(surface_pos.r == 0.0f && surface_pos.g == 0.0f && surface_pos.b == 0.0f)
 			if(surface_pos == 0.0f)
 				surface_pos = pos;
@@ -87,24 +97,23 @@ void main()
  
 			vec3 Li = g_lightIntensity*Tl;
  
-			Lo += Li*T*density;//*scale;
+			Lo += T*density;//*scale;Li*
 		}
 		
 		// advance the current position
-		pos += step_dir;
+		pos += step_dir * sampling_quality;
 	}
 
-	float ratio = 1.00 / 1.33;
+	// cube mapping
+	// normal computed from voxel distance field by central difference
 	vec3 normal = texture(density_texture, surface_pos).rgb;
 	vec3 Normal = mat3(transpose(inverse(model))) * normal;
 	vec3 Position = vec3(model * vec4(surface_pos, 1.0f));
 
+	float refraction_ratio = 1.00 / 1.33;
 	vec3 I = normalize(Position - camera_position);
-	vec3 R = refract(I, normalize(Normal), ratio);
-	//color.rgb = texture(skybox, R).rgb;
-
-	float ii = float(i)/float(numSamples);
-	color.rgb = vec3(ii, ii, ii);
+	vec3 R = refract(I, normalize(Normal), refraction_ratio);
+	color.rgb = texture(skybox, R).rgb;
 
 	//color.rgb = Lo;
 	color.a = 1.0-T;

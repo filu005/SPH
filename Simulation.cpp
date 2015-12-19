@@ -23,7 +23,7 @@ void Simulation::run(float dt)
 
 	// tutaj bo Painter::paint() jest const
 	//mesh.generate_mesh(particle_system.get_position_color_field_data());
-	distance_field.generate_field_from_surface_particles(extract_surface_particles());
+	//distance_field.generate_field_from_surface_particles(extract_surface_particles_2());
 	particle_system.update_buffers();
 }
 
@@ -122,7 +122,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 
 	std::vector<Particle> surface_particles;
 	std::vector<float> threshold_values;
-	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.1f));
+	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.5f));
 
 	// go through all grids
 	for(auto & i : grid)
@@ -134,7 +134,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 		{
 			Particle & particle_i = *particle_i_ptr;
 			glm::vec3 center_mass_distance{ 0.f };
-			auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) +glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
+			auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) + glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
 			glm::vec3 mass_x_position_sum{ 0.f };
 			auto mass_sum = 0.f;
 			auto neighbourhood_no = 0u;
@@ -147,7 +147,9 @@ std::vector<Particle> Simulation::extract_surface_particles()
 					for(int x = -1; x <= 1; ++x)
 					{
 						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-						assert(!out_of_grid_scope(neighbour_cell_vector));
+						//assert(!out_of_grid_scope(neighbour_cell_vector) && "jezus maria jakas czasteczka wyskoczyla!");
+						if(out_of_grid_scope(neighbour_cell_vector))
+							continue;
 
 						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
 
@@ -194,6 +196,21 @@ std::vector<Particle> Simulation::extract_surface_particles()
 	return surface_particles;
 }
 
+std::vector<Particle> Simulation::extract_surface_particles_2()
+{
+	auto & particles = particle_system.particles;
+	std::vector<Particle> surface_particles;
+	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.8f));
+
+	for(auto & particle : particles)
+	{
+		if(particle.at_surface == true)
+			surface_particles.emplace_back(particle);
+	}
+
+	return surface_particles;
+}
+
 void Simulation::emit_particles()
 {
 	using namespace c;
@@ -202,18 +219,19 @@ void Simulation::emit_particles()
 		return;
 
 	float const additional_margin = 0.5f;
-	float const placement_mod = 0.5f;
+	float const placement_mod = 0.4f;
 	auto & particles = particle_system.particles;
 
-	for(float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
-		for(float y = ymin*placement_mod; y < ymax*placement_mod; y += c::H*additional_margin)
-			for(float z = zmin*placement_mod; z < zmax*placement_mod; z += c::H*additional_margin)
+	// dam break setup
+	for(float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
+		for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
+			for(float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
 			{
 				Particle& tp = particles[particle_count];
 				tp.position = glm::vec3(x, y, z);
 				tp.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-				tp.eval_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-				tp.previous_position = tp.position;
+				//tp.eval_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+				//tp.previous_position = tp.position;
 				++particle_count;
 				if(particle_count >= c::N)
 					return;
@@ -252,8 +270,8 @@ void Simulation::compute_density()
 							continue;
 
 						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-						//if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-						//	continue;
+						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+							continue;
 
 						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
 						
@@ -262,7 +280,7 @@ void Simulation::compute_density()
 							Particle& particle_j = *particle_j_ptr;
 
 							glm::vec3 rVec = particle_i.position - particle_j.position;
-							float r_sq = dot(rVec, rVec);//rVec.x*rVec.x + rVec.y*rVec.y
+							float r_sq = dot(rVec, rVec);
 							float r = sqrt(r_sq);
 
 							if(r > c::H)
@@ -271,7 +289,7 @@ void Simulation::compute_density()
 								continue;
 							}
 
-							particle_i.density += W_poly6(r_sq, h_sq, c::H);
+							particle_i.density += c::particleMass*W_poly6(r_sq, h_sq, c::H);
 
 							++particle_j_ptr;
 						}
@@ -280,10 +298,8 @@ void Simulation::compute_density()
 				}
 			}
 
-			particle_i.density *= c::particleMass;
-
 			// compute pressure
-			particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1);// Tait equation
+			particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1.0f);// Tait equation
 			//particle_i.pressure = c::gasStiffness * (particle_i.density - c::restDensity);
 
 			++particle_i_ptr;
@@ -315,8 +331,6 @@ void Simulation::compute_forces()
 			glm::vec3 colorFieldGrad(0.0f, 0.0f, 0.0f);
 			float colorFieldLap(0.0f);
 
-			int no_neighbours = 0;
-
 			// go through neighbours of particle [ii] in grid [i]
 			for(int z = -1; z <= 1; ++z)
 			{
@@ -329,8 +343,8 @@ void Simulation::compute_forces()
 							continue;
 
 						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-						//if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-						//	continue;
+						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+							continue;
 
 						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
 
@@ -348,8 +362,11 @@ void Simulation::compute_forces()
 								continue;
 							}
 
-							colorFieldLap += LapW_poly6(r, c::H) / particle_j.density;
-							viscosityF += (particle_j.velocity - particle_i.velocity) / particle_j.density*LapW_viscosity(r, c::H);//eval_velocity
+							viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;//eval_velocity
+
+							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+							colorFieldGrad += c::particleMass*gradW_poly / particle_j.density;
+							colorFieldLap += c::particleMass*LapW_poly6(r, c::H) / particle_j.density;
 
 							if(particle_i.id == particle_j.id)
 							{
@@ -357,12 +374,9 @@ void Simulation::compute_forces()
 								continue;
 							}
 
-							++no_neighbours;
+							//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*c::particleMass)*GradW_spiky(r, c::H)*rVec;
 
-							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-							colorFieldGrad += gradW_poly / particle_j.density;
-							pressureF += 0.5f*(particle_j.pressure + particle_i.pressure) / particle_j.density*GradW_spiky(r, c::H)*rVec;
-							// pressureF += (particleJ.p()/pow(particleJ.density, 2) + particleI.p()/pow(particleI.density, 2))*GradW_spiky(r, c::H)*rVec;
+							pressureF += (particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
 
 							++particle_j_ptr;
 						}
@@ -370,14 +384,17 @@ void Simulation::compute_forces()
 				}
 			}
 
-			colorFieldGrad *= c::particleMass;
-			colorFieldLap *= c::particleMass;
-
 			float colorFieldGradMag = glm::length(colorFieldGrad);
 			if(colorFieldGradMag > c::surfaceThreshold)
 				surfacetensionF = -c::surfaceTension*colorFieldLap*colorFieldGrad / colorFieldGradMag;// -sigma*nabla^{2}[c_s]*(nabla[c_s]/|nabla[c_s]|)
-			pressureF *= -c::particleMass;//*particleI.density;
-			viscosityF *= c::particleMass*c::viscosity;
+
+			if(colorFieldGradMag > c::surfaceParticleGradientThreshold)
+				particle_i.at_surface = false;
+			else
+				particle_i.at_surface = false;
+
+			pressureF *= -c::particleMass*particle_i.density;
+			viscosityF *= c::viscosity;
 			externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
 
 			totalF = pressureF + viscosityF + surfacetensionF + externalF;
@@ -401,14 +418,14 @@ void Simulation::advance()
 	for(auto & p : particles)
 	{
 		// 0. semi-implicit Euler
-		 //glm::vec3 new_velocity = p.velocity + p.acc*dt;
-		 //glm::vec3 new_position = p.position + new_velocity*dt;
+		//glm::vec3 new_velocity = p.velocity + p.acc*dt;
+		//glm::vec3 new_position = p.position + new_velocity*dt;
 
-		// 1. O(dt^3)
+		// 1. velocity Verlet O(dt^3)
 		glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
 		glm::vec3 new_velocity = (new_position - p.position) / dt;
 
-		// 2. O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
+		// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
 		//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
 		//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
 		
@@ -418,7 +435,7 @@ void Simulation::advance()
 		//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
 		//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
 
-		p.previous_position = p.position;
+		//p.previous_position = p.position;
 		p.position = new_position;
 		//p.eval_velocity = eval_velocity;
 		p.velocity = new_velocity;
@@ -552,7 +569,7 @@ glm::vec3 Simulation::GradW_spiky(float r, float h)
 {
 	static float coefficient = -45.0f / (c::PIf*pow(h, 6));
 
-	return glm::vec3(coefficient * pow(h - r, 2) / r);
+	return glm::vec3(coefficient * pow((h - r), 2) / r);
 }
 
 // float Simulation::W_viscosity(float r, float h)

@@ -4,9 +4,9 @@
 #include "DistanceField.hpp"
 
 
-DistanceField::DistanceField() : voxel_field_size{64}
+DistanceField::DistanceField()
 {
-	perlin_noise_gen = noise_factory.create3D();
+	//perlin_noise_gen = noise_factory.create3D();
 	setup_buffers();
 }
 
@@ -30,18 +30,21 @@ void DistanceField::setup_buffers(void)
 {
 	// Create buffers/arrays
 	glGenVertexArrays(1, &this->VAO);
-	glGenBuffers(1, &VBO);
-
 	glBindVertexArray(this->VAO);
 
+	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(this->box_data), &box_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(this->box_vertices), &box_vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	glGenBuffers(1, &this->EBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(this->box_indices), &this->box_indices[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*) 0);
-
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*) (3 * sizeof(GLfloat)));
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*) 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// create distance field in 3D texture
 	volume_texture = generate_voxel_texture3d();
@@ -141,6 +144,15 @@ void DistanceField::generate_field_from_surface_particles(std::vector<Particle> 
 	}
 
 	auto const voxel_grid_normals = generate_normals_for_voxel_field(voxel_grid);
+	//std::vector<glm::vec3> voxel_grid_gradient_normals;
+	//voxel_grid_gradient_normals.reserve(surface_particles.size());
+
+	//for(auto const & p : surface_particles)
+	//{
+	//	voxel_grid_gradient_normals.emplace_back(p.gradient);
+	//}
+
+	//assert("nie tak latwo tutaj z tymi noramlnymi. musze je ladnie sfitowac do distance field'a i pewnie tez wygladzic");
 
 	// OpenGL part - transfer distance field to graphic card
 	std::array<GLfloat, c::voxelGrid3dSize * 4> rgba_data;
@@ -252,7 +264,7 @@ GLuint DistanceField::generate_voxel_texture3d()
 
 	GLenum target = GL_TEXTURE_3D;
 	GLenum filter = GL_LINEAR;
-	GLenum address = GL_CLAMP_TO_BORDER;
+	GLenum address = GL_CLAMP_TO_EDGE;
 
 	glBindTexture(target, texid);
 
@@ -262,8 +274,6 @@ GLuint DistanceField::generate_voxel_texture3d()
 	glTexParameteri(target, GL_TEXTURE_WRAP_S, address);
 	glTexParameteri(target, GL_TEXTURE_WRAP_T, address);
 	glTexParameteri(target, GL_TEXTURE_WRAP_R, address);
-
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
@@ -303,30 +313,31 @@ GLuint DistanceField::generate_field()
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
-	GLubyte *data = new GLubyte[voxel_field_size*voxel_field_size*voxel_field_size];
-	auto rgba_data = make_unique<GLubyte[]>(voxel_field_size*voxel_field_size*voxel_field_size * 4);
+	GLubyte *data = new GLubyte[c::voxelGridDimension*c::voxelGridDimension*c::voxelGridDimension];
+	auto rgba_data = make_unique<GLubyte[]>(c::voxelGridDimension*c::voxelGridDimension*c::voxelGridDimension * 4);
 	GLubyte *ptr = &data[0];
 
-	float frequency = 4.0f / voxel_field_size;
-	float center = voxel_field_size / 2.0f + 0.5f;
+	float frequency = 4.0f / c::voxelGridDimension;
+	float center = c::voxelGridDimension / 2.0f + 0.5f;
 	auto const r = 0.35f;
 	auto const A = 0.25f;
 
-	for(int x = 0; x < voxel_field_size; x++)
+	for(int x = 0; x < c::voxelGridDimension; x++)
 	{
-		for(int y = 0; y < voxel_field_size; ++y)
+		for(int y = 0; y < c::voxelGridDimension; ++y)
 		{
-			for(int z = 0; z < voxel_field_size; ++z)
+			for(int z = 0; z < c::voxelGridDimension; ++z)
 			{
 				float dx = center - x;
 				float dy = center - y;
 				float dz = center - z;
 
-				float off = fabsf(perlin_noise_gen->generate(x*frequency, y*frequency, z*frequency));
+				//float off = fabsf(perlin_noise_gen->generate(x*frequency, y*frequency, z*frequency));
+				float off = 0.0f;
 					
 				//Perlin3D(x*frequency,y*frequency,z*frequency,5,0.5f);
 
-				float d = sqrtf(dx*dx + dy*dy + dz*dz) / (voxel_field_size);
+				float d = sqrtf(dx*dx + dy*dy + dz*dz) / (c::voxelGridDimension);
 
 				*ptr++ = ((d - off) < r) ? 255 : 0;
 				//*ptr++ = (A*(d-r)*off)*255;
@@ -334,7 +345,7 @@ GLuint DistanceField::generate_field()
 		}
 	}
 
-	for(int i = 0; i < voxel_field_size*voxel_field_size*voxel_field_size; ++i)
+	for(int i = 0; i < c::voxelGridDimension*c::voxelGridDimension*c::voxelGridDimension; ++i)
 	{
 		rgba_data[i * 4] = data[i];
 		rgba_data[i * 4 + 1] = data[i];
@@ -346,9 +357,9 @@ GLuint DistanceField::generate_field()
 	glTexImage3D(target,
 		0,
 		GL_RGBA,
-		voxel_field_size,
-		voxel_field_size,
-		voxel_field_size,
+		c::voxelGridDimension,
+		c::voxelGridDimension,
+		c::voxelGridDimension,
 		0,
 		GL_RGBA,
 		GL_UNSIGNED_BYTE,
@@ -392,45 +403,75 @@ is correct.
 GLfloat const DistanceField::box_data[] =
 {
 	// Back face
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-	1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-	1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	-1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+	-1.0f, -1.0f, -1.0f,
+	1.0f, 1.0f, -1.0f,
+	1.0f, -1.0f, -1.0f,
+	1.0f, 1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, 1.0f, -1.0f,
 	// Front face
-	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-	1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+	-1.0f, -1.0f, 1.0f,
+	1.0f, -1.0f, 1.0f,
+	1.0f, 1.0f, 1.0f,
+	1.0f, 1.0f, 1.0f,
+	-1.0f, 1.0f, 1.0f,
+	-1.0f, -1.0f, 1.0f,
 	// Left face
-	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+	-1.0f, 1.0f, 1.0f,
+	-1.0f, 1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f, -1.0f,
+	-1.0f, -1.0f, 1.0f,
+	-1.0f, 1.0f, 1.0f,
 	// Right face
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-	1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-	1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+	1.0f, 1.0f, 1.0f,
+	1.0f, -1.0f, -1.0f,
+	1.0f, 1.0f, -1.0f,
+	1.0f, -1.0f, -1.0f,
+	1.0f, 1.0f, 1.0f,
+	1.0f, -1.0f, 1.0f,
 	// Bottom face
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f,
-	1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-	1.0f, -1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-	-1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-	-1.0f, -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+	-1.0f, -1.0f, -1.0f,
+	1.0f, -1.0f, -1.0f,
+	1.0f, -1.0f, 1.0f,
+	1.0f, -1.0f, 1.0f,
+	-1.0f, -1.0f, 1.0f,
+	-1.0f, -1.0f, -1.0f,
 	// Top face
-	-1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 0.0f,
-	1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-	-1.0f, 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-	-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f
+	-1.0f, 1.0f, 1.0f,
+	1.0f, 1.0f, 1.0f,
+	1.0f, 1.0f, -1.0f,
+	1.0f, 1.0f, -1.0f,
+	-1.0f, 1.0f, -1.0f,
+	-1.0f, 1.0f, 1.0f
+};
+
+GLfloat const DistanceField::box_vertices[] =
+{
+	//front
+	c::xmin, c::ymin, c::zmax,
+	c::xmax, c::ymin, c::zmax,
+	c::xmax, c::ymax, c::zmax,
+	c::xmin, c::ymax, c::zmax,
+	//back
+	c::xmin, c::ymin, c::zmin,
+	c::xmax, c::ymin, c::zmin,
+	c::xmax, c::ymax, c::zmin,
+	c::xmin, c::ymax, c::zmin
+};
+
+GLuint const DistanceField::box_indices[] =
+{
+	// Front
+	0, 1, 2, 2, 3, 0,
+	// Back
+	4, 7, 6, 6, 5, 4,
+	// Right
+	5, 6, 2, 2, 1, 5,
+	// Left
+	4, 0, 3, 3, 7, 4,
+	// Top
+	7, 3, 2, 2, 6, 7,
+	// Bottom
+	4, 5, 1, 1, 0, 4
 };

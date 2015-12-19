@@ -28,6 +28,7 @@ private:
 	void bin_particles_in_grid();
 	void iterate_through_all_neighbours();
 	std::vector<Particle> extract_surface_particles();
+	std::vector<Particle> extract_surface_particles_2();
 
 	void emit_particles();
 	void compute_density();

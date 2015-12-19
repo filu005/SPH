@@ -205,11 +205,15 @@ void Painter::paint(DistanceField const & df)
 	glUniform1i(glGetUniformLocation(distance_field_raymarching.Program, "skybox"), 3);
 
 	auto const & VAO = df.getVAO();
+	
+	glEnable(GL_CULL_FACE);
 
 	// Draw cube
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+
+	glDisable(GL_CULL_FACE);
 }
 
 void Painter::paint_to_framebuffer(DistanceField const & df)
@@ -252,7 +256,7 @@ void Painter::paint_to_framebuffer(DistanceField const & df)
 
 	glBindVertexArray(VAO);
 	glBindTexture(GL_TEXTURE_2D, front_volume_texture);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
 
@@ -267,7 +271,7 @@ void Painter::paint_to_framebuffer(DistanceField const & df)
 	
 	glBindVertexArray(VAO);
 	glBindTexture(GL_TEXTURE_2D, back_volume_texture);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
 

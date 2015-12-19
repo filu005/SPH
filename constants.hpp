@@ -8,17 +8,17 @@ namespace c
 	const float PIf = 3.14159265358979323846f;
 	// "The larger the timestep, the smaller the smoothing kernel and the higher the stiffness,
 	// the more likely the system is to explode."
-	const float H = 0.045f;//0.045
+	const float H = 0.03125f;//0.045
 	const float gasStiffness = 4.5f;// incompressibility can only be obtained as k -> infinity.
 #if SIMULATION_PAIR
 	const float restDensity = 1.f;
 #else
-	const float restDensity = 120.f;
+	const float restDensity = 140.f;//140
 #endif
-	const float particleMass = 0.002f;
-	const float viscosity = 2.5f;
-	const float surfaceTension = 0.05f;
-	const float surfaceThreshold = 20.0f;
+	const float particleMass = 0.00085f;//0.0008f
+	const float viscosity = 0.65f;//2.5f
+	const float surfaceTension = 0.55f;//0.05f
+	const float surfaceThreshold = 0.00001f;
 	const float gravityAcc = -9.80665f;
 
 	const float wall_stiffness = 50000.0f;// im mniejsza tym sciany bardziej 'faluja'
@@ -41,18 +41,18 @@ namespace c
 #if SIMULATION_PAIR
 	const float dt = 0.0003f;//0.0004f
 #else
-	const float dt = 0.005f;//0.015f
+	const float dt = 0.004f;//0.015f
 #endif
 }
 
 // grid constants
 namespace c
 {
-	const int N = 6000;// total particle count
-	const int K = 32, L = 32, M = 32;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
+	const int N = 10000;// total particle count
+	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
-	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.5f;
-	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.5f;
+	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
+	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.25f;
 	const float dx = (xmax - xmin) / static_cast<float>(K);// tez tylko potegi 2, np. 2^(-6)=1/64
 	const float dy = (ymax - ymin) / static_cast<float>(L);
 	const float dz = (zmax - zmin) / static_cast<float>(M);
@@ -61,6 +61,7 @@ namespace c
 // rendering constants
 namespace c
 {
+	auto const surfaceParticleGradientThreshold = 1.0f;// threshold for 2. surface-particle-search method
 	auto const centerMassThreshold = 0.004f;
 	auto const surfaceNeighbourhoodThreshold = 16u;
 	auto const voxelGridDimension = 64;
