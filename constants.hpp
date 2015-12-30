@@ -41,7 +41,7 @@ namespace c
 #if SIMULATION_PAIR
 	const float dt = 0.0003f;//0.0004f
 #else
-	const float dt = 0.004f;//0.015f
+	const float dt = 0.006f;//0.015f
 #endif
 }
 

@@ -1,11 +1,20 @@
-#include <iostream>
-
 #include "Simulation.hpp"
 
 
-Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f)
+Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../stats_Ec(t)[dt " + std::to_string(c::dt) + "].txt")
 {
-	
+	start_time = std::chrono::high_resolution_clock::now();
+}
+
+Simulation::~Simulation()
+{
+	// from http://stackoverflow.com/questions/634087/stdcopy-to-stdcout-for-stdpair
+	std::ostream_iterator<std::string> output_iterator(stats_file, "\n");
+	std::transform(
+		energy_stats.begin(),
+		energy_stats.end(),
+		std::ostream_iterator<std::string>(stats_file, "\n"),
+		statsToString);
 }
 
 void Simulation::run(float dt)
@@ -411,8 +420,10 @@ void Simulation::compute_forces()
 void Simulation::advance()
 {
 	using namespace c;
+	using std::chrono::high_resolution_clock;
+	using std::chrono::milliseconds;
 	// http://stackoverflow.com/questions/16056300/runge-kutta-rk4-not-better-than-verlet?rq=1
-	float kinetic_force = 0.0f, potential_force = 0.0f;
+	glm::vec3 kinetic_force(0.0f), potential_force(0.0f);
 	auto & particles = particle_system.particles;
 	
 	for(auto & p : particles)
@@ -440,11 +451,14 @@ void Simulation::advance()
 		//p.eval_velocity = eval_velocity;
 		p.velocity = new_velocity;
 
-		potential_force += p.position[1] * fabs(p.acc[1]);
-		kinetic_force += pow(new_velocity[1], 2);
+		potential_force += p.position * glm::abs(p.acc);
+		kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f));
 	}
 
-	mechanical_energy = 0.5f*c::particleMass*kinetic_force + potential_force*c::particleMass;
+	mechanical_energy = 0.5f*c::particleMass*glm::length(kinetic_force) + c::particleMass*glm::length(potential_force);
+
+	auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
+	energy_stats.push_back(std::make_pair(mechanical_energy, d.count()));
 }
 
 void Simulation::resolve_collisions()

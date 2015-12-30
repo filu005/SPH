@@ -56,6 +56,7 @@ int main(int argc, char* argv[])
 	// Initialize GLEW to setup the OpenGL Function pointers
 	glewExperimental = GL_TRUE;
 	glewInit();
+	glfwSetWindowPos(window, 100, 100);
 	glEnable(GL_PROGRAM_POINT_SIZE);
 
 	// Define the viewport dimensions

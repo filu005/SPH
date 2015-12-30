@@ -38,7 +38,7 @@ public:
 	GLfloat Zoom;
 
 	// Constructor with vectors
-	Camera(glm::vec3 position = glm::vec3(0.5f, 0.5f, 1.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = -110.0f, GLfloat pitch = -40.0f) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(5.0f), MouseSensitivity(0.25f), Zoom(45.0f)
+	Camera(glm::vec3 position = glm::vec3(0.5f, 0.5f, 1.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = -115.0f, GLfloat pitch = -28.0f) : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(5.0f), MouseSensitivity(0.25f), Zoom(45.0f)
 	{
 		this->Position = position;
 		this->WorldUp = up;

@@ -1,5 +1,8 @@
 #pragma once
 #include <vector>
+#include <chrono>
+#include <fstream>
+#include <sstream>
 
 #include "ParticleSystem.hpp"
 #include "DistanceField.hpp"
@@ -13,6 +16,7 @@ class Simulation
 {
 public:
 	Simulation();
+	~Simulation();
 	
 	void run(float dt);
 
@@ -46,4 +50,18 @@ private:
 
 	int particle_count;
 	float mechanical_energy;
+	std::chrono::high_resolution_clock::time_point start_time;
+	std::vector<std::pair<float, long long> > energy_stats;
+	std::ofstream stats_file;
 };
+
+// only for stats output
+namespace
+{
+	std::string statsToString(const std::pair<float, long long>& data)
+	{
+		std::ostringstream str;
+		str << data.first << ", " << data.second;
+		return str.str();
+	}
+} // namespace anonymous
