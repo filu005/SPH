@@ -23,7 +23,7 @@ void main()
 
 	const int numSamples = 64 * int(1.0f/sampling_quality);
 	const float scale = maxDist/float(numSamples);
- 
+
 	const int numLightSamples = 256;
 	const float lscale = maxDist / float(numLightSamples);
 
@@ -42,14 +42,14 @@ void main()
 	vec3 dir = normalize(back - front);
 
 	vec3 step_dir = dir*scale;
- 
+
 	// transmittance
 	float T = 1.0;
 	// in-scattered radiance
 	vec3 Lo = vec3(0.0);
-	
+
 	vec3 surface_pos = vec3(0.0f, 0.0f, 0.0f);
-	
+
 	for (int i=0; i < numSamples; ++i)
 	{
 		// If you want a texture access to return the exact value stored
@@ -70,36 +70,36 @@ void main()
 		if (density <= 0.025f) // this const should be uniform value, slightly bigger than c::rmin, 0.015f
 		{
 			//if(surface_pos.r == 0.0f && surface_pos.g == 0.0f && surface_pos.b == 0.0f)
-			if(surface_pos == 0.0f)
+			if(all(equal( surface_pos, vec3(0.0f) )))
 				surface_pos = pos;
 			// attenuate ray-throughput
 			T *= 1.0-density*g_absorption;//*scale
 			if (T <= 0.01)
 				break;
- 
+
 			// point light step_dir in texture space
 			vec3 lightDir = normalize(g_lightPos-pos);//*lscale;
- 
+
 			// sample light
 			float Tl = 1.0; // transmittance along light ray
 			vec3 lpos = pos + lightDir;
- 
+
 			for (int s=0; s < numLightSamples; ++s)
 			{
 				float ld = texture(density_texture, lpos).a;
 				Tl *= 1.0-g_absorption*ld;//*lscale
- 
+
 				if (Tl <= 0.01)
 					break;
- 
+
 				lpos += lightDir;
 			}
- 
+
 			vec3 Li = g_lightIntensity*Tl;
- 
+
 			Lo += T*density;//*scale;Li*
 		}
-		
+
 		// advance the current position
 		pos += step_dir * sampling_quality;
 	}

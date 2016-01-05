@@ -13,11 +13,11 @@ namespace c
 #if SIMULATION_PAIR
 	const float restDensity = 1.f;
 #else
-	const float restDensity = 140.f;//140
+	const float restDensity = 100.f;
 #endif
-	const float particleMass = 0.00085f;//0.0008f
-	const float viscosity = 0.65f;//2.5f
-	const float surfaceTension = 0.55f;//0.05f
+	const float particleMass = 0.00065f;
+	const float viscosity = 1.0f;//0.005f;
+	const float surfaceTension = 0.45f;
 	const float surfaceThreshold = 0.00001f;
 	const float gravityAcc = -9.80665f;
 
@@ -41,14 +41,14 @@ namespace c
 #if SIMULATION_PAIR
 	const float dt = 0.0003f;//0.0004f
 #else
-	const float dt = 0.006f;//0.015f
+	const float dt = 0.004f;//0.015f
 #endif
 }
 
 // grid constants
 namespace c
 {
-	const int N = 10000;// total particle count
+	const int N = 12000;// total particle count
 	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;

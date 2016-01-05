@@ -47,6 +47,7 @@ private:
 	glm::vec3 GradW_spiky(float r, float h);
 	//float W_viscosity(float r, float h);
 	float LapW_viscosity(float r, float h);
+	glm::vec3 Grad_BicubicSpline(glm::vec3 x, float h);
 
 	int particle_count;
 	float mechanical_energy;

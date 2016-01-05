@@ -1,4 +1,4 @@
-#include "Mathematics/GteIntpTricubic3.h"
+//#include "Mathematics/GteIntpTricubic3.h"
 #include "Painter.hpp"
 #include "constants.hpp"
 #include "DistanceField.hpp"

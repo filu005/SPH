@@ -246,14 +246,23 @@ void ParticleSystem::insert_sort_particles_by_indices()
 
 	for(int i = 1; i < size; i++)
 	{
-		const Particle temp = particles[i];
+		auto const particle_i = particles[i];
+		auto const particle_i_idx = get_cell_index(particle_i.position);
 		int j;
 
-		for(j = i - 1; j >= 0 && get_cell_index(particles[j].position) > get_cell_index(temp.position); j--)
+		for(j = i - 1; j >= 0 && get_cell_index(particles[j].position) > particle_i_idx; j--)
 			particles[j + 1] = particles[j];
 
-		particles[j + 1] = temp;
+		particles[j + 1] = particle_i;
 	}
+
+	//for(auto it = begin(particles) + 1; it != end(particles); ++it)
+	//{
+	//	auto const particle_i_idx = get_cell_index(it->position);
+	//	auto insertion = it - 1;
+	//	for(; insertion >= std::begin(particles) && get_cell_index(insertion->position) > particle_i_idx; insertion--);
+	//	std::rotate(insertion++, it, std::next(it));
+	//}
 }
 
 GLfloat const ParticleSystem::point_vertices[3] =

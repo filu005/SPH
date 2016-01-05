@@ -238,8 +238,8 @@ void Simulation::emit_particles()
 			{
 				Particle& tp = particles[particle_count];
 				tp.position = glm::vec3(x, y, z);
-				tp.velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-				//tp.eval_velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+				tp.velocity = glm::vec3(0.0f);
+				//tp.eval_velocity = glm::vec3(0.0f);
 				//tp.previous_position = tp.position;
 				++particle_count;
 				if(particle_count >= c::N)
@@ -321,8 +321,6 @@ void Simulation::compute_forces()
 	using particle_system::get_cell_index;
 	using particle_system::out_of_grid_scope;
 	using namespace c;
-	glm::vec3 totalF(0.0f, 0.0f, 0.0f);
-	glm::vec3 pressureF(0.0f, 0.0f, 0.0f), viscosityF(0.0f, 0.0f, 0.0f), externalF(0.0f, 0.0f, 0.0f), surfacetensionF(0.0f, 0.0f, 0.0f);
 	// const float h_sq = c::H*c::H;
 
 	auto & grid = this->grid.grid;
@@ -337,7 +335,9 @@ void Simulation::compute_forces()
 		{
 			Particle & particle_i = *particle_i_ptr;
 
-			glm::vec3 colorFieldGrad(0.0f, 0.0f, 0.0f);
+			glm::vec3 totalF(0.0f);
+			glm::vec3 pressureF(0.0f), viscosityF(0.0f), externalF(0.0f), surfacetensionF(0.0f);
+			glm::vec3 colorFieldGrad(0.0f);
 			float colorFieldLap(0.0f);
 
 			// go through neighbours of particle [ii] in grid [i]
@@ -362,16 +362,13 @@ void Simulation::compute_forces()
 							Particle& particle_j = *particle_j_ptr;
 
 							glm::vec3 rVec = particle_i.position - particle_j.position;
-							float r_sq = dot(rVec, rVec);
-							float r = sqrt(r_sq);
+							float r = glm::length(rVec);
 
 							if(r > c::H)
 							{
 								++particle_j_ptr;
 								continue;
 							}
-
-							viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;//eval_velocity
 
 							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
 							colorFieldGrad += c::particleMass*gradW_poly / particle_j.density;
@@ -383,9 +380,13 @@ void Simulation::compute_forces()
 								continue;
 							}
 
+							//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;
+
+							viscosityF += 2.0f * c::particleMass / (particle_j.density + particle_i.density) * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
+
 							//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*c::particleMass)*GradW_spiky(r, c::H)*rVec;
 
-							pressureF += (particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
+							pressureF += c::particleMass*(particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
 
 							++particle_j_ptr;
 						}
@@ -402,8 +403,8 @@ void Simulation::compute_forces()
 			else
 				particle_i.at_surface = false;
 
-			pressureF *= -c::particleMass*particle_i.density;
-			viscosityF *= c::viscosity;
+			pressureF *= -particle_i.density;
+			viscosityF *= c::viscosity;// *particle_i.density;
 			externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
 
 			totalF = pressureF + viscosityF + surfacetensionF + externalF;
@@ -505,7 +506,7 @@ void Simulation::resolve_collisions()
 			//{
 			//	static const float c = 4.5f;
 
-			//	// if(tp.velocity*wallNormal < glm::vec3(0.0f, 0.0f, 0.0f))
+			//	// if(tp.velocity*wallNormal < glm::vec3(0.0f))
 			//	tp.velocity += c*(2.0f*d - dist2)*wall_normal;
 			//}
 
@@ -601,3 +602,18 @@ float Simulation::LapW_viscosity(float r, float h)
 	return coefficient * (h - r);
 }
 
+glm::vec3 Simulation::Grad_BicubicSpline(glm::vec3 x, float h)
+{
+	auto const r = glm::length(x);
+	auto const q = r / h;
+	auto coefficient = 6.0f * (8.0f/c::PIf) / pow(h, 3);
+
+	if(0.0f <= q && q <= 0.5f)
+		coefficient *= 3.0f * pow(q, 2) - 2.0f * q;
+	else if(0.5f < q && q <= 1.0f)
+		coefficient *= -1.0f * pow(1.0f - q, 2);
+	else
+		coefficient *= 0.0f;
+
+	return glm::vec3(coefficient) * glm::normalize(x) / h;
+}
