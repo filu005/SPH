@@ -52,14 +52,14 @@ private:
 	int particle_count;
 	float mechanical_energy;
 	std::chrono::high_resolution_clock::time_point start_time;
-	std::vector<std::pair<float, long long> > energy_stats;
+	std::vector<std::pair<float, float> > energy_stats;
 	std::ofstream stats_file;
 };
 
 // only for stats output
 namespace
 {
-	std::string statsToString(const std::pair<float, long long>& data)
+	std::string statsToString(const std::pair<float, float>& data)
 	{
 		std::ostringstream str;
 		str << data.first << ", " << data.second;

@@ -8,15 +8,15 @@ namespace c
 	const float PIf = 3.14159265358979323846f;
 	// "The larger the timestep, the smaller the smoothing kernel and the higher the stiffness,
 	// the more likely the system is to explode."
-	const float H = 0.03125f;//0.045
+	const float H = 0.03125f;//def = 0.03125f
 	const float gasStiffness = 4.5f;// incompressibility can only be obtained as k -> infinity.
 #if SIMULATION_PAIR
 	const float restDensity = 1.f;
 #else
-	const float restDensity = 100.f;
+	const float restDensity = 115.f;
 #endif
-	const float particleMass = 0.00065f;
-	const float viscosity = 1.0f;//0.005f;
+	const float particleMass = 0.0008f;
+	const float viscosity = 1.5f;//0.005f; def = 1.5f
 	const float surfaceTension = 0.45f;
 	const float surfaceThreshold = 0.00001f;
 	const float gravityAcc = -9.80665f;
@@ -48,7 +48,7 @@ namespace c
 // grid constants
 namespace c
 {
-	const int N = 12000;// total particle count
+	const int N = 8000;// total particle count; def = 8000
 	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
@@ -64,7 +64,7 @@ namespace c
 	auto const surfaceParticleGradientThreshold = 1.0f;// threshold for 2. surface-particle-search method
 	auto const centerMassThreshold = 0.004f;
 	auto const surfaceNeighbourhoodThreshold = 16u;
-	auto const voxelGridDimension = 64;
+	auto const voxelGridDimension = 32;
 	auto const xyzmaxV = c::xmax;
 	auto const xyzminV = c::xmin;
 	auto const voxelSize = (c::xyzmaxV - c::xyzminV) / static_cast<float>(c::voxelGridDimension);// to samo co dx, dy, dz

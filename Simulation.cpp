@@ -1,7 +1,7 @@
 #include "Simulation.hpp"
 
 
-Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../stats_Ec(t)[dt " + std::to_string(c::dt) + "].txt")
+Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnoœæ/perf(t) " + std::to_string(c::K) + ".txt")
 {
 	start_time = std::chrono::high_resolution_clock::now();
 }
@@ -9,12 +9,12 @@ Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_fil
 Simulation::~Simulation()
 {
 	// from http://stackoverflow.com/questions/634087/stdcopy-to-stdcout-for-stdpair
-	std::ostream_iterator<std::string> output_iterator(stats_file, "\n");
-	std::transform(
-		energy_stats.begin(),
-		energy_stats.end(),
-		std::ostream_iterator<std::string>(stats_file, "\n"),
-		statsToString);
+	//std::ostream_iterator<std::string> output_iterator(stats_file, "\n");
+	//std::transform(
+	//	energy_stats.begin(),
+	//	energy_stats.end(),
+	//	std::ostream_iterator<std::string>(stats_file, "\n"),
+	//	statsToString);
 }
 
 void Simulation::run(float dt)
@@ -418,8 +418,48 @@ void Simulation::compute_forces()
 	}
 }
 
+bool save_screenshot(std::string filename, int w, int h)
+{
+	//This prevents the images getting padded 
+	// when the width multiplied by 3 is not a multiple of 4
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+	int nSize = w*h * 3;
+	// First let's create our buffer, 3 channels per Pixel
+	char* dataBuffer = (char*) malloc(nSize*sizeof(char));
+
+	if(!dataBuffer) return false;
+
+	// Let's fetch them from the backbuffer	
+	// We request the pixels in GL_BGR format, thanks to Berzeger for the tip
+	glReadPixels((GLint) 0, (GLint) 0,
+		(GLint) w, (GLint) h,
+		GL_BGR, GL_UNSIGNED_BYTE, dataBuffer);
+
+	//Now the file creation
+	FILE *filePtr;
+	fopen_s(&filePtr, filename.c_str(), "wb");
+	if(!filePtr) return false;
+
+
+	unsigned char TGAheader[12] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	unsigned char header[6] = { w % 256, w / 256,
+		h % 256, h / 256,
+		24, 0 };
+	// We write the headers
+	fwrite(TGAheader, sizeof(unsigned char), 12, filePtr);
+	fwrite(header, sizeof(unsigned char), 6, filePtr);
+	// And finally our image data
+	fwrite(dataBuffer, sizeof(GLubyte), nSize, filePtr);
+	fclose(filePtr);
+
+	return true;
+}
+
 void Simulation::advance()
 {
+	auto static iteration_count = 0u;
+	auto static sim_time = 0.0f;
 	using namespace c;
 	using std::chrono::high_resolution_clock;
 	using std::chrono::milliseconds;
@@ -455,11 +495,30 @@ void Simulation::advance()
 		potential_force += p.position * glm::abs(p.acc);
 		kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f));
 	}
-
+	
+	iteration_count++;
+	sim_time += dt;
 	mechanical_energy = 0.5f*c::particleMass*glm::length(kinetic_force) + c::particleMass*glm::length(potential_force);
+	//auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
+	//if(iteration_count % 5u == 0)
+	//	energy_stats.push_back(std::make_pair(sim_time, static_cast<float>(iteration_count) / static_cast<float>(d.count())));
 
-	auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
-	energy_stats.push_back(std::make_pair(mechanical_energy, d.count()));
+	//if(sim_time == dt*2.0f ||
+	//	//std::fabs(sim_time - (dt * 64.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 96.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 192.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 224.0f)) < dt*0.5f ||
+	//	//std::fabs(sim_time - (dt * 256.0f)) < dt*0.5f ||
+	//	//std::fabs(sim_time - (dt * 288.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 320.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 384.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 448.0f)) < dt*0.5f ||
+	//	//std::fabs(sim_time - (dt * 512.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 576.0f)) < dt*0.5f ||
+	//	//std::fabs(sim_time - (dt * 640.0f)) < dt*0.5f ||
+	//	std::fabs(sim_time - (dt * 704.0f)) < dt*0.5f)
+	//	//std::fabs(sim_time - (dt * 768.0f)) < dt*0.5f)//3 sekundy przy d = 0.004
+	//	save_screenshot(std::string("./../screenshot/screen_dt_" + std::to_string(sim_time) + ".tga"), c::width, c::height);
 }
 
 void Simulation::resolve_collisions()
