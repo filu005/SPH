@@ -67,7 +67,6 @@
       <AdditionalIncludeDirectories>C:\libs\GTEngine\Include;C:\libs\SOIL\src;C:\libs\glm;C:\libs\glfw-3.0.4.bin.WIN32\include;C:\libs\glew-1.11.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalOptions>/Zo %(AdditionalOptions)</AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>

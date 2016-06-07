@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <array>
+#include <vector>
 
 #include "Paintable.hpp"
 
@@ -21,17 +22,23 @@ public:
 	void paint(Painter& p) const override final;
 	void setup_buffers() override final;
 
-	// generuje siatke korzystajac z danych podanych w pierwszym argumencie
-	// przy pomocy algorytmu Marching Cubes.
-	// nastepnie aktualizuje bufor VBO na GPU
+	GLuint getNormalmap() const { return _normalmap; }
+	GLuint getTexture() const { return _texture; }
+	void loadTextures();
+
+	// generuje siatke korzystajac z siatki wczystkich czasteczek
+	// stworzonej w petli symulaacji.
+	// siatka tworzona przy pomocy Marching Cubes.
+	// po stworzeniu siatki aktualizowany jest bufor VBO na GPU
 	void generate_mesh(std::array<GridCell, c::C> const & grid);
 
 	GLsizei no_vertices;
 
 private:
 	void update_buffers();
-	float get_isosurface_potential(const glm::vec3 p, std::array<GridCell, c::C> const & grid);
+	bool exportOBJ(const std::string& filename) const;
 
-	GLuint const vertices_buffer_size = c::C;
-	std::array<Vertex, c::C> vertices_buffer;
+	GLuint const vertices_buffer_size = c::voxelGrid3dSize;
+	std::array<Vertex, c::voxelGrid3dSize> vertices_buffer;
+	GLuint _normalmap, _texture;
 };

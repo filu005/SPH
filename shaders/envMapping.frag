@@ -3,9 +3,9 @@ in vec3 Normal;
 in vec3 Position;
 out vec4 color;
 
-uniform vec3 cameraPos;
+uniform vec3 viewPos;
 uniform samplerCube skybox;
-uniform sampler2D texturemap;
+uniform sampler2D diffuseMap;
 uniform sampler2D normalmap;
 
 #define M_PI 3.14159265
@@ -127,16 +127,16 @@ void main()
 
     // refraction
     float ratio = 1.00 / 1.33;
-    vec3 refractionI = normalize(Position - cameraPos);
+    vec3 refractionI = normalize(Position - viewPos);
     vec3 refractionR = refract(refractionI, normalize( finalNormal ), ratio);
     vec4 refractionColor = texture(skybox, refractionR);
 
-    vec3 reflectionI = normalize(Position - cameraPos);
+    vec3 reflectionI = normalize(Position - viewPos);
     vec3 reflectionR = reflect(reflectionI, normalize( normalTex ));
     vec4 reflectionColor = texture(skybox, reflectionR);
 
     vec3 base = refractionColor.xyz;
-    //vec3 base = texture2D( texturemap, calculatedNormal ).rgb;
+    //vec3 base = texture2D( diffuseMap, calculatedNormal ).rgb;
 
     // float rim = 1.75 * max( 0., abs( dot( normalize( vNormal ),
     //                      normalize( -vOPosition.xyz ) ) ) );
@@ -154,13 +154,13 @@ void main()
     vec4 FragColor = vec4( base.rgb, 1. );
 
 	// reflection
-	// vec3 reflectionI = normalize(Position - cameraPos);
+	// vec3 reflectionI = normalize(Position - viewPos);
  //    vec3 reflectionR = reflect(reflectionI, Normal);
  //    vec4 reflectionColor = texture(skybox, reflectionR);
 
     // refraction
     // float ratio = 1.00 / 1.33;
-    // vec3 refractionI = normalize(Position - cameraPos);
+    // vec3 refractionI = normalize(Position - viewPos);
     // vec3 refractionR = refract(refractionI, Normal, ratio);
     // vec4 refractionColor = texture(skybox, refractionR);
 
@@ -174,19 +174,18 @@ void main()
 */
 {
     // reflection
-    vec3 reflectionI = normalize(Position - cameraPos);
-    vec3 reflectionR = reflect(reflectionI, Normal);
+    vec3 normal = vec3(Normal.x, Normal.y, Normal.z);
+    vec3 reflectionI = normalize(Position - viewPos);
+    vec3 reflectionR = reflect(reflectionI, normal);
     vec4 reflectionColor = texture(skybox, reflectionR);
 
     // refraction
     float ratio = 1.00 / 1.33;
-    vec3 refractionI = normalize(Position - cameraPos);
-    vec3 refractionR = refract(refractionI, Normal, ratio);
-    vec4 refractionColor = texture(skybox, refractionR);
+    vec3 refractionI = normalize(Position - viewPos);
+    vec3 refractionR = refract(refractionI, normal, ratio);
+    vec4 refractionColor = texture(skybox, refractionR.zyz);
 
-    // fresnel = 0.12 + ( 0.88 * pow2( 1.0 - abs( dot(normal, viewVec) ) ) );
-    float fresnel = dot(Normal, normalize(Position));
-    // color = (1.0 - fresnel) * reflectionColor + fresnel * refractionColor;
+    float fresnel = dot(normal, normalize(Position));
     vec4 finalColor = mix(reflectionColor, refractionColor, fresnel);
     finalColor.a = 0.5 + 0.5*fresnel;
 

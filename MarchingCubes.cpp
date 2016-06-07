@@ -49,7 +49,7 @@ int YtimeZ;		//'plane' of cubes on YZ (equal to (ncellsY+1)*pointsZ )
 //	MARCHING CUBES	//
 
 //  VERSION  1A).  //
-TRIANGLE1* MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, glm::vec4 * points,
+std::unique_ptr<TRIANGLE1[]> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, std::unique_ptr<glm::vec4[]> points,
 										INTERSECTION intersection, int &numTriangles)
 {
 	TRIANGLE1 * triangles = new TRIANGLE1[3*ncellsX*ncellsY*ncellsZ];//this should be enough space, if not change 4 to 5
@@ -122,7 +122,7 @@ TRIANGLE1* MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, 
 			}	//END OF FOR LOOP
 		
 		//free all the wasted space
-		TRIANGLE1 * retTriangles = new TRIANGLE1[numTriangles];
+		auto retTriangles = std::make_unique<TRIANGLE1[]>(numTriangles);
 		for(int i=0; i < numTriangles; i++)
 			retTriangles[i] = triangles[i];
 		delete [] triangles;
@@ -132,10 +132,10 @@ TRIANGLE1* MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, 
 
 
 //	VERSION  1B).  //
-TRIANGLE1* MarchingCubesLinear(int ncellsX, int ncellsY, int ncellsZ, float minValue, 
-									glm::vec4 * points, int &numTriangles)
+std::unique_ptr<TRIANGLE1[]> MarchingCubesLinear(int ncellsX, int ncellsY, int ncellsZ, float minValue,
+	std::unique_ptr<glm::vec4[]> points, int &numTriangles)
 {
-	return MarchingCubes(ncellsX, ncellsY, ncellsZ, minValue, points, LinearInterp, numTriangles);
+	return MarchingCubes(ncellsX, ncellsY, ncellsZ, minValue, std::move(points), LinearInterp, numTriangles);
 }
 
 
@@ -193,10 +193,12 @@ std::unique_ptr<TRIANGLE[]> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ,
 				//get the index
 				cubeIndex = int(0);
 				for(int n = 0; n < 8; n++)
-				if(verts[n]->w <= minValue) cubeIndex |= (1 << n);
+				if(verts[n]->w <= minValue)
+					cubeIndex |= (1 << n);
 
 				//check if its completely inside or outside
-				if(!edgeTable[cubeIndex]) continue;
+				if(!edgeTable[cubeIndex])
+					continue;
 
 				indGrad = int(0);
 				edgeIndex = edgeTable[cubeIndex];

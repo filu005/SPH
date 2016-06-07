@@ -17,7 +17,8 @@ Painter::Painter() : bounding_box_shader("./shaders/bounding_box.vert", "./shade
 					 shader("./shaders/default.vert", "./shaders/default.frag"),
 					 particle_bin_shader("./shaders/particle_bin.vert", "./shaders/default.frag"),
 					 skybox_shader("./shaders/skybox.vert", "./shaders/skybox.frag"),
-					 mesh_shader("./shaders/mesh.vert", "./shaders/mesh.frag"),
+					 mesh_shader("./shaders/envMapping.vert", "./shaders/envMapping.frag"),
+					 draw_normals_shader("./shaders/draw_normals.vert", "./shaders/draw_normals.geom", "./shaders/draw_normals.frag"),
 					 distance_field_raymarching("./shaders/distance_field_raymarching.vert", "./shaders/distance_field_raymarching.frag"),
 					 color_cube_framebuffer_shader("./shaders/color_cube_framebuffer.vert", "./shaders/color_cube_framebuffer.frag"),
 					 camera_ref(nullptr)
@@ -132,32 +133,74 @@ void Painter::paint(Skybox const & sb)
 
 void Painter::paint(MCMesh const & msh)
 {
-	mesh_shader.Use();
-
-	// Create transformations
-	glm::mat4 view;
-	glm::mat4 model;
-	glm::mat4 projection;
-	assert(camera_ref != nullptr);
-	auto const camera = *camera_ref;
-
-	view = camera.GetViewMatrix();
-	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
-
-	// Get their uniform location
-	GLint viewLoc = glGetUniformLocation(mesh_shader.Program, "view");
-	GLint modelLoc = glGetUniformLocation(mesh_shader.Program, "model");
-	GLint projLoc = glGetUniformLocation(mesh_shader.Program, "projection");
-	// Pass them to the shaders
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
 	auto const & VAO = msh.getVAO();
+	const auto& texture = msh.getTexture();
+	const auto& normalmap = msh.getNormalmap();
+	{
+		mesh_shader.Use();
 
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, msh.no_vertices);
-	glBindVertexArray(0);
+		// Create transformations
+		glm::mat4 view;
+		glm::mat4 model;
+		glm::mat4 projection;
+		assert(camera_ref != nullptr);
+		auto const camera = *camera_ref;
+
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
+
+		// Get their uniform location
+		GLint viewLoc = glGetUniformLocation(mesh_shader.Program, "view");
+		GLint modelLoc = glGetUniformLocation(mesh_shader.Program, "model");
+		GLint projLoc = glGetUniformLocation(mesh_shader.Program, "projection");
+		GLint cameraPosLoc = glGetUniformLocation(mesh_shader.Program, "viewPos");
+		// Pass them to the shaders
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniform3fv(cameraPosLoc, 1, &camera.Position[0]);
+
+		glBindTexture(GL_TEXTURE_CUBE_MAP, Skybox::getSkyboxTexture());
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glUniform1i(glGetUniformLocation(mesh_shader.Program, "diffuseMap"), 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, normalmap);
+		glUniform1i(glGetUniformLocation(mesh_shader.Program, "normalMap"), 1);
+
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, msh.no_vertices);
+		glBindVertexArray(0);
+	}
+
+	//{
+	//	draw_normals_shader.Use();
+
+	//	// Create transformations
+	//	glm::mat4 view;
+	//	glm::mat4 model;
+	//	glm::mat4 projection;
+	//	assert(camera_ref != nullptr);
+	//	auto const camera = *camera_ref;
+
+	//	view = camera.GetViewMatrix();
+	//	projection = glm::perspective(camera.Zoom, 800.0f / 600.0f, 0.1f, 1000.0f);
+
+	//	// Get their uniform location
+	//	GLint viewLoc = glGetUniformLocation(draw_normals_shader.Program, "view");
+	//	GLint modelLoc = glGetUniformLocation(draw_normals_shader.Program, "model");
+	//	GLint projLoc = glGetUniformLocation(draw_normals_shader.Program, "projection");
+	//	// Pass them to the shaders
+	//	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	//	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	//	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	//	glBindVertexArray(VAO);
+	//	glDrawArrays(GL_TRIANGLES, 0, msh.no_vertices);
+	//	glBindVertexArray(0);
+	//}
 }
 
 void Painter::paint(DistanceField const & df)

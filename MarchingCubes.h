@@ -58,12 +58,12 @@ typedef float (*FORMULA)(glm::vec3);
 //		 following index: i*(ncellsY+1)*(ncellsZ+1) + j*(ncellsZ+1) + k .
 //		Also, the array starts at the minimum on all axes.
 //TODO: another algorithm which takes array of JUST values. Coordinates then start at farthest, lower-right corner.
-TRIANGLE1* MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, glm::vec4* points,  
+std::unique_ptr<TRIANGLE1[]> MarchingCubes(int ncellsX, int ncellsY, int ncellsZ, float minValue, std::unique_ptr<glm::vec4[]> points,
 									INTERSECTION intersection, int &numTriangles);
 //  1B).
 //same as above only does linear interpolation so no INTERSECTION function is needed
-TRIANGLE1* MarchingCubesLinear(int ncellsX, int ncellsY, int ncellsZ, float minValue, 
-									glm::vec4* points, int &numTriangles);
+std::unique_ptr<TRIANGLE1[]> MarchingCubesLinear(int ncellsX, int ncellsY, int ncellsZ, float minValue,
+	std::unique_ptr<glm::vec4[]> points, int &numTriangles);
 
 // 'STRAIGHT' Marching Cubes Algorithm //////////////////////////////////////////////////
 //takes number of cells (ncellsX, ncellsY, ncellsZ) to subdivide on each axis

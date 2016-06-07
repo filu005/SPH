@@ -64,13 +64,13 @@ namespace c
 	auto const surfaceParticleGradientThreshold = 1.0f;// threshold for 2. surface-particle-search method
 	auto const centerMassThreshold = 0.004f;
 	auto const surfaceNeighbourhoodThreshold = 16u;
-	auto const voxelGridDimension = 32;
-	auto const xyzmaxV = c::xmax;
-	auto const xyzminV = c::xmin;
+	auto const voxelGridDimension = 64;
+	auto const xyzmaxV = 0.5f;
+	auto const xyzminV = -0.5f;
 	auto const voxelSize = (c::xyzmaxV - c::xyzminV) / static_cast<float>(c::voxelGridDimension);// to samo co dx, dy, dz
 	auto const voxelGrid3dSize = c::voxelGridDimension * c::voxelGridDimension * c::voxelGridDimension;
 	auto const boundingCubeScale = 5.0f;
 	auto const boundingCubeRadius = c::voxelSize * c::boundingCubeScale;
 	auto const rmax = c::voxelSize * sqrt(3.0f);//0.0221
-	auto const rmin = 0.005f;
+	auto const rmin = 0.002f;
 }

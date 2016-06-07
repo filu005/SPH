@@ -32,6 +32,7 @@ private:
 	Shader particle_bin_shader;
 	Shader skybox_shader;
 	Shader mesh_shader;
+	Shader draw_normals_shader;
 	Shader distance_field_raymarching;
 	Shader color_cube_framebuffer_shader;
 

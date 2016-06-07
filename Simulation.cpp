@@ -31,8 +31,12 @@ void Simulation::run(float dt)
 	advance();
 
 	// tutaj bo Painter::paint() jest const
-	//mesh.generate_mesh(particle_system.get_position_color_field_data());
-	//distance_field.generate_field_from_surface_particles(extract_surface_particles_2());
+	// do wizualizacji:
+	// za pomoca siatki generowanej przez MC
+	mesh.generate_mesh(grid.grid);
+	// przy pomocy ray castingu na distance field
+	//distance_field.generate_field_from_surface_particles(extract_surface_particles());
+	// wizualizacja poszczegolnych czasteczek
 	particle_system.update_buffers();
 }
 
@@ -66,59 +70,6 @@ void Simulation::bin_particles_in_grid()
 		++grid[c].no_particles;
 	}
 }
-
-void Simulation::iterate_through_all_neighbours()
-{
-	using particle_system::get_cell_index;
-	using particle_system::out_of_grid_scope;
-	using namespace c;
-
-	//auto & particles = particle_system.particles;
-	auto & grid = this->grid.grid;
-
-	// go through all grids
-	for(auto& i : grid)
-	{
-		auto particle_i = i.first_particle;
-
-		// go through all particles in grid [i]
-		for(int ii = 0; ii < i.no_particles; ++ii)
-		{
-			int neighbours_count = 0;
-
-			// go through neighbours of particle [ii] in grid [i]
-			for(int z = -1; z <= 1; ++z)
-			{
-				for(int y = -1; y <= 1; ++y)
-				{
-					for(int x = -1; x <= 1; ++x)
-					{
-						glm::vec3 neighbour_cell_vector = particle_i->position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-						if(out_of_grid_scope(neighbour_cell_vector))
-							continue;
-
-						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-							continue;
-						
-						//printf("%d ,, ", neighbour_grid_idx);
-						auto particle_j = grid[neighbour_grid_idx].first_particle;
-
-						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
-						{
-							neighbours_count++;
-
-							++particle_j;
-						}
-					}
-				}
-			}
-			printf(":%d\n", neighbours_count);
-			++particle_i;
-		}
-	}
-}
-
 
 std::vector<Particle> Simulation::extract_surface_particles()
 {
