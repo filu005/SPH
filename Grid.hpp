@@ -16,11 +16,12 @@ struct GridCell
 };
 
 /**
- * Grid is an optimisation structure.
+ * Grid is an optimization structure.
  * It works as a uniform grid for fast neighbour search.
- * This grid is used for implementation of (z-)index sort optimisation method,
- * which i use in my SPH fluid simulator.
+ * This grid is used for implementation of (z-)index sort optimization method,
+ * which is used in SPH fluid simulator.
  * detailed description: http://www.escience.ku.dk/research_school/phd_courses/archive/non-rigid-modeling-and-simulation-2010/slides/copenhagen_sphImplementation.pdf
+ * and: Prashant Goswami et al. “Interactive SPH Simulation and Rendering on the GPU” http://maverick.inria.fr/~Prashant.Goswami/Research/Papers/SCA10_SPH.pdf
  */
 class Grid : public Paintable
 {
@@ -34,7 +35,7 @@ public:
 
 	void clear_grid();
 
-	GLsizei const bin_count = c::C;// == c::C
+	GLsizei const bin_count = c::C;
 
 private:
 	// Hot stuff

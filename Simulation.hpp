@@ -11,7 +11,20 @@
 #include "Grid.hpp"
 #include "Box.hpp"
 
-
+/**
+ * Basicly main class where all computation takes place.
+ * All Paintable components are kept here.
+ * @param skybox	Kept here only to be consistent about Paintables - they all are here.
+ 	Used in painting horizont and for easy reflections/refractions (see shaders).
+ * @param particle_system	Object responsible for storing and managing particles in memory.
+ 	Sorts particles in memory according to their grid index (or alternatively z-index).
+	Also contains mesh of particles (spheres).
+ * @param distance_field	Creator of 3D scalar field describing minimum distance towards (fluid) surface.
+ * @param mesh	Generates a mesh by running standard Marching Cubes on previously detected surface particles.
+ 	Also saves mesh as OBJ.
+ * @param bounding_box	Container kept here for easy access while painting and for colisions.
+ * @param grid	Structure stores a 3D grid used for neighbour search optimization (see ParticleSystem).
+ */
 class Simulation
 {
 public:
@@ -29,7 +42,17 @@ public:
 	Grid grid;
 
 private:
+	/**
+	* Assigns a bin index in 3D grid to every particle.
+	* This method is kept here because of interdependence of grid and particle_system:
+	* grid is kept in Grid structure and all particles are stored in ParticleSystem.
+	*/
 	void bin_particles_in_grid();
+
+	/**
+	 * extract_surface_particles(), extract_surface_particles_2():
+	 * Temporary solution. Extracts surface particles. Used for ray casting.
+	 */
 	std::vector<Particle> extract_surface_particles();
 	std::vector<Particle> extract_surface_particles_2();
 

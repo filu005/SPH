@@ -1,7 +1,7 @@
 #include "Simulation.hpp"
 
 
-Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnoœæ/perf(t) " + std::to_string(c::K) + ".txt")
+Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
 {
 	start_time = std::chrono::high_resolution_clock::now();
 }
@@ -151,7 +151,6 @@ std::vector<Particle> Simulation::extract_surface_particles()
 			++particle_i_ptr;
 		}
 	}
-	//std::cout << "surface_particles.size() " << surface_particles.size() << "\n";
 
 	return surface_particles;
 }
@@ -454,21 +453,6 @@ void Simulation::advance()
 	//if(iteration_count % 5u == 0)
 	//	energy_stats.push_back(std::make_pair(sim_time, static_cast<float>(iteration_count) / static_cast<float>(d.count())));
 
-	//if(sim_time == dt*2.0f ||
-	//	//std::fabs(sim_time - (dt * 64.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 96.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 192.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 224.0f)) < dt*0.5f ||
-	//	//std::fabs(sim_time - (dt * 256.0f)) < dt*0.5f ||
-	//	//std::fabs(sim_time - (dt * 288.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 320.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 384.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 448.0f)) < dt*0.5f ||
-	//	//std::fabs(sim_time - (dt * 512.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 576.0f)) < dt*0.5f ||
-	//	//std::fabs(sim_time - (dt * 640.0f)) < dt*0.5f ||
-	//	std::fabs(sim_time - (dt * 704.0f)) < dt*0.5f)
-	//	//std::fabs(sim_time - (dt * 768.0f)) < dt*0.5f)//3 sekundy przy d = 0.004
 	//	save_screenshot(std::string("./../screenshot/screen_dt_" + std::to_string(sim_time) + ".tga"), c::width, c::height);
 }
 

@@ -144,15 +144,6 @@ void DistanceField::generate_field_from_surface_particles(std::vector<Particle> 
 	}
 
 	auto const voxel_grid_normals = generate_normals_for_voxel_field(voxel_grid);
-	//std::vector<glm::vec3> voxel_grid_gradient_normals;
-	//voxel_grid_gradient_normals.reserve(surface_particles.size());
-
-	//for(auto const & p : surface_particles)
-	//{
-	//	voxel_grid_gradient_normals.emplace_back(p.gradient);
-	//}
-
-	//assert("nie tak latwo tutaj z tymi noramlnymi. musze je ladnie sfitowac do distance field'a i pewnie tez wygladzic");
 
 	// OpenGL part - transfer distance field to graphic card
 	std::array<GLfloat, c::voxelGrid3dSize * 4> rgba_data;

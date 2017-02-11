@@ -97,7 +97,8 @@ void MCMesh::generate_mesh(std::array<GridCell, c::C> const & grid)
 				auto density = 0.0f;
 
 				// get potential (density) from neighbouring 8 cells (voxels)
-				for(auto x = -0.5f; x < 1.0f; x = x + 1.0f) // x < 1.0f zeby na pewno zaliczyæ -0.5 i 0.5
+				// to create 3D scalar field on which Marching Cubes can run
+				for(auto x = -0.5f; x < 1.0f; x = x + 1.0f) // x < 1.0f zeby na pewno zaliczyc -0.5 i 0.5
 				{
 					for(auto y = -0.5f; y < 1.0f; y = y + 1.0f)
 					{

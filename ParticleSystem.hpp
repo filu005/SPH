@@ -11,6 +11,7 @@
 
 namespace particle_system
 {
+	// returns an index of bin (cell) in Grid in 3D coordinates
 	inline int get_cell_index(const glm::vec3 v);
 	glm::ivec3 get_grid_coords(glm::vec3 const v);
 	glm::vec3 get_grid_coords_in_real_system(glm::vec3 const v);
@@ -20,6 +21,10 @@ namespace particle_system
 	inline uint64_t splitBy3(unsigned int a);
 }
 
+/**
+ * Stores and sorts (according to bin [cell] index) particles.
+ * Does NOT place particles into bins (see Simulation::bin_particles_in_grid()).
+ */
 class ParticleSystem : public Paintable
 {
 public:
@@ -36,6 +41,10 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
+	/**
+	 * Sorts particles by a cell (bin) index. cell is an elementary part
+	 * of Grid. Thanks to sorting the Grid can easily store an information about neighbours.
+	 */
 	void insert_sort_particles_by_indices();
 
 	GLsizei const bin_count = c::C;// == c::C

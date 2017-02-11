@@ -1,51 +1,45 @@
 #pragma once
 
-#define SIMULATION_PAIR 0
-
 //simulation constans
 namespace c
 {
-	const float PIf = 3.14159265358979323846f;
 	// "The larger the timestep, the smaller the smoothing kernel and the higher the stiffness,
 	// the more likely the system is to explode."
+
+	// kernel radius (promien odciecia)
 	const float H = 0.03125f;//def = 0.03125f
 	const float gasStiffness = 4.5f;// incompressibility can only be obtained as k -> infinity.
-#if SIMULATION_PAIR
-	const float restDensity = 1.f;
-#else
 	const float restDensity = 115.f;
-#endif
 	const float particleMass = 0.0008f;
 	const float viscosity = 1.5f;//0.005f; def = 1.5f
 	const float surfaceTension = 0.45f;
 	const float surfaceThreshold = 0.00001f;
 	const float gravityAcc = -9.80665f;
 
+	// for collisions with container (Box)
 	const float wall_stiffness = 50000.0f;// im mniejsza tym sciany bardziej 'faluja'
 	const float wall_damping = -100.0f;
+
+	// viewport dimensions
 	const int width = 800;
 	const int height = 600;
-
 	const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 	const float viewHeight = 1.2f;
 	const float viewWidth = aspectRatio * viewHeight;// 1.6
 
-	const unsigned int wall_count = 6;
-
-#if SIMULATION_PAIR
-	const unsigned int totalParticleCount = 2;
-#else
-	const unsigned int totalParticleCount = 1000;
-#endif
-
-#if SIMULATION_PAIR
-	const float dt = 0.0003f;//0.0004f
-#else
+	// timestep (krok czasowy)
 	const float dt = 0.004f;//0.015f
-#endif
+
+	const float PIf = 3.14159265358979323846f;
 }
 
-// grid constants
+/**
+ * grid constants:
+ * N	number of particles
+ * [K, L, M]	count of bins in X, Y, Z dimensions; defines number of grid bins
+ * [xmin, xmax]	dimensions of neighbour grid (in world coordinates)
+ * dx, dy, dz	dimensions of single bin
+ */
 namespace c
 {
 	const int N = 8000;// total particle count; def = 8000

@@ -13,6 +13,10 @@ struct Vertex
 
 struct GridCell;
 
+/**
+ * MCMesh stands for: 'generate a Mesh using Marching Cubes and save to .obj'
+ *
+ */
 class MCMesh : public Paintable
 {
 public:
@@ -27,7 +31,7 @@ public:
 	void loadTextures();
 
 	// generuje siatke korzystajac z siatki wczystkich czasteczek
-	// stworzonej w petli symulaacji.
+	// stworzonej w petli symulacji.
 	// siatka tworzona przy pomocy Marching Cubes.
 	// po stworzeniu siatki aktualizowany jest bufor VBO na GPU
 	void generate_mesh(std::array<GridCell, c::C> const & grid);

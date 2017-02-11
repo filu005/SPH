@@ -86,6 +86,4 @@ void Grid::clear_grid()
 	{
 		c = { nullptr, 0 };
 	});
-	//for(auto& c : grid)
-	//	c = { nullptr, 0 };
 }

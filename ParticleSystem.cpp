@@ -197,7 +197,7 @@ void ParticleSystem::update_buffers()
 	// alternatywa: http://www.gamedev.net/topic/666461-map-buffer-range-super-slow/
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->model_mat_VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * c::N, &this->model_matrices[0]);      //replace data in VBO with new data
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::mat4) * c::N, &this->model_matrices[0]);// replace data in VBO with new data
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
@@ -256,6 +256,7 @@ void ParticleSystem::insert_sort_particles_by_indices()
 		particles[j + 1] = particle_i;
 	}
 
+	// http://codereview.stackexchange.com/questions/110793/insertion-sort-in-c
 	//for(auto it = begin(particles) + 1; it != end(particles); ++it)
 	//{
 	//	auto const particle_i_idx = get_cell_index(it->position);
