@@ -81,6 +81,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="BoxEditor.cpp" />
     <ClCompile Include="DistanceField.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="main.cpp" />
@@ -95,6 +96,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.hpp" />
+    <ClInclude Include="BoxEditor.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="constants.hpp" />
     <ClInclude Include="DistanceField.hpp" />

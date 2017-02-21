@@ -4,6 +4,7 @@
 
 #include "Simulation.hpp"
 #include "Painter.hpp"
+#include "BoxEditor.hpp"
 #include "Camera.hpp"
 
 
@@ -16,6 +17,7 @@ public:
 	void paint();
 	void tick(float dt);
 
+	BoxEditor box_editor;
 	Camera camera;
 
 private:

@@ -33,7 +33,7 @@ void Simulation::run(float dt)
 	// tutaj bo Painter::paint() jest const
 	// do wizualizacji:
 	// za pomoca siatki generowanej przez MC
-	mesh.generate_mesh(grid.grid);
+	//mesh.generate_mesh(grid.grid);
 	// przy pomocy ray castingu na distance field
 	//distance_field.generate_field_from_surface_particles(extract_surface_particles());
 	// wizualizacja poszczegolnych czasteczek

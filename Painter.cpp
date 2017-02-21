@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Box.hpp"
+#include "BoxEditor.hpp"
 #include "Grid.hpp"
 #include "Skybox.hpp"
 #include "MCMesh.hpp"
@@ -14,6 +15,7 @@
 #include "Painter.hpp"
 
 Painter::Painter() : bounding_box_shader("./shaders/bounding_box.vert", "./shaders/default.frag"),
+					 box_editor_shader("./shaders/box_intersection.vert", "./shaders/default.frag"),
 					 shader("./shaders/default.vert", "./shaders/default.frag"),
 					 particle_bin_shader("./shaders/particle_bin.vert", "./shaders/default.frag"),
 					 skybox_shader("./shaders/skybox.vert", "./shaders/skybox.frag"),
@@ -56,6 +58,36 @@ void Painter::paint(Box const & box)
 	glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, 0);
 	glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, (GLvoid*) (4 * sizeof(GLuint)));
 	glDrawElements(GL_LINES, 8, GL_UNSIGNED_INT, (GLvoid*) (8 * sizeof(GLuint)));
+	glBindVertexArray(0);
+}
+
+void Painter::paint(BoxEditor const & box_editor)
+{
+	box_editor_shader.Use();
+
+	// Create transformations
+	glm::mat4 view;
+	glm::mat4 model;
+	glm::mat4 projection;
+	assert(camera_ref != nullptr);
+	auto const camera = *camera_ref;
+
+	view = camera.GetViewMatrix();
+	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
+
+	// Get their uniform location
+	GLint viewLoc = glGetUniformLocation(box_editor_shader.Program, "view");
+	GLint modelLoc = glGetUniformLocation(box_editor_shader.Program, "model");
+	GLint projLoc = glGetUniformLocation(box_editor_shader.Program, "projection");
+	// Pass them to the shaders
+	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+	glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+	auto const & VAO = box_editor.getVAO();
+
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_POINTS, 0, 1);
 	glBindVertexArray(0);
 }
 

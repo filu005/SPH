@@ -21,6 +21,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void do_movement(float dt);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void render(GLFWwindow* window);
 double calcFPS(GLFWwindow* window, double theTimeInterval = 1.0, std::string theWindowTitle = "NONE");
 bool secElapse(double interval = 1.0);
@@ -52,6 +53,7 @@ int main(int argc, char* argv[])
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	// Initialize GLEW to setup the OpenGL Function pointers
 	glewExperimental = GL_TRUE;
@@ -69,6 +71,7 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glCullFace(GL_FRONT_AND_BACK);
+	glPointSize(5.0f);
 
 	app = make_unique<Application>();
 	double t0 = glfwGetTime();
@@ -152,6 +155,19 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastY = yposf;
 
 	camera.ProcessMouseMovement(xoffset*2.5f, yoffset*2.5f);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if(button == GLFW_MOUSE_BUTTON_1) // LMB
+	{
+		if(action == GLFW_PRESS)
+		{
+			auto xpos = 0.0, ypos = 0.0;
+			glfwGetCursorPos(window, &xpos, &ypos);
+			app->box_editor.process_mouse_click(static_cast<float>(xpos), static_cast<float>(ypos));
+		}
+	}
 }
 
 

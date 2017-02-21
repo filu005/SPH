@@ -2,6 +2,7 @@
 #include "Shader.hpp"
 
 class Box;
+class BoxEditor;
 class Grid;
 class Skybox;
 class MCMesh;
@@ -16,6 +17,7 @@ public:
 	Painter();
 
 	void paint(Box const & box);
+	void paint(BoxEditor const & box_editor);
 	void paint(Grid const & grid);
 	void paint(Skybox const & sb);
 	void paint(MCMesh const & msh);
@@ -28,6 +30,7 @@ private:
 	void paint_to_framebuffer(DistanceField const & df);
 
 	Shader bounding_box_shader;
+	Shader box_editor_shader;
 	Shader shader;
 	Shader particle_bin_shader;
 	Shader skybox_shader;

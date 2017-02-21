@@ -7,14 +7,14 @@ namespace c
 	// the more likely the system is to explode."
 
 	// kernel radius (promien odciecia)
-	const float H = 0.03125f;//def = 0.03125f
-	const float gasStiffness = 4.5f;// incompressibility can only be obtained as k -> infinity.
-	const float restDensity = 115.f;
-	const float particleMass = 0.0008f;
-	const float viscosity = 1.5f;//0.005f; def = 1.5f
-	const float surfaceTension = 0.45f;
+	const float H                = 0.03125f;//def = 0.03125f
+	const float gasStiffness     = 4.5f;// incompressibility can only be obtained as k -> infinity.
+	const float restDensity      = 100.0f;//115.f
+	const float particleMass     = 0.0008f;
+	const float viscosity        = 1.5f;//0.005f; def = 1.5f
+	const float surfaceTension   = 0.45f;
 	const float surfaceThreshold = 0.00001f;
-	const float gravityAcc = -9.80665f;
+	const float gravityAcc       = -9.80665f;
 
 	// for collisions with container (Box)
 	const float wall_stiffness = 50000.0f;// im mniejsza tym sciany bardziej 'faluja'
@@ -42,7 +42,7 @@ namespace c
  */
 namespace c
 {
-	const int N = 8000;// total particle count; def = 8000
+	const int N = 5000;// total particle count; def = 8000
 	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;

@@ -4,9 +4,11 @@
 #include <vector>
 
 // GL Includes
-#include <GL\glew.h>
+#include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "constants.hpp"
 
 
 
@@ -107,6 +109,25 @@ public:
 			this->Zoom = 1.0f;
 		if(this->Zoom >= 45.0f)
 			this->Zoom = 45.0f;
+	}
+
+	// http://stackoverflow.com/questions/29997209/opengl-c-mouse-ray-picking-glmunproject
+	glm::vec3 create_ray(float xpos, float ypos) const
+	{
+		// these positions must be in range [-1, 1] (!!!), not [0, width] and [0, height]
+		auto mouseX = xpos / (c::width  * 0.5f) - 1.0f;
+		auto mouseY = ypos / (c::height * 0.5f) - 1.0f;
+
+		glm::mat4 projection = glm::perspective(this->Zoom, c::aspectRatio, 0.1f, 1000.0f);
+		glm::mat4 view = this->GetViewMatrix();
+
+		glm::mat4 inverseVP = glm::inverse(projection * view);
+		glm::vec4 screenPos = glm::vec4(mouseX, -mouseY, 1.0f, 1.0f);
+		glm::vec4 worldPos = inverseVP * screenPos;
+
+		glm::vec3 dir = glm::normalize(glm::vec3(worldPos));
+
+		return dir;
 	}
 
 private:
