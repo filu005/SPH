@@ -82,7 +82,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 
 	std::vector<Particle> surface_particles;
 	std::vector<float> threshold_values;
-	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.5f));
+	surface_particles.reserve(static_cast<unsigned int>(particle_system.particle_count * 0.5f));
 
 	// go through all grids
 	for(auto & i : grid)
@@ -159,7 +159,7 @@ std::vector<Particle> Simulation::extract_surface_particles_2()
 {
 	auto & particles = particle_system.particles;
 	std::vector<Particle> surface_particles;
-	surface_particles.reserve(static_cast<unsigned int>(c::N * 0.8f));
+	surface_particles.reserve(static_cast<unsigned int>(particle_system.particle_count * 0.8f));
 
 	for(auto & particle : particles)
 	{
@@ -181,6 +181,8 @@ void Simulation::emit_particles()
 	float const placement_mod = 0.4f;
 	auto & particles = particle_system.particles;
 
+	particle_system.add_particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f));
+
 	// dam break setup
 	for(float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
 		for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
@@ -195,6 +197,7 @@ void Simulation::emit_particles()
 				if(particle_count >= c::N)
 					return;
 			}
+
 }
 
 void Simulation::compute_density()
@@ -395,7 +398,7 @@ bool save_screenshot(std::string filename, int w, int h)
 	unsigned char TGAheader[12] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	unsigned char header[6] = { w % 256, w / 256,
 		h % 256, h / 256,
-		24, 0 };
+		24u, 0 };
 	// We write the headers
 	fwrite(TGAheader, sizeof(unsigned char), 12, filePtr);
 	fwrite(header, sizeof(unsigned char), 6, filePtr);

@@ -73,6 +73,8 @@ void Painter::paint(BoxEditor const & box_editor)
 	auto const camera = *camera_ref;
 
 	view = camera.GetViewMatrix();
+	model = glm::translate(model, box_editor.intersection_point);
+	model = glm::scale(model, glm::vec3(0.02f));
 	projection = glm::perspective(camera.Zoom, c::aspectRatio, 0.1f, 1000.0f);
 
 	// Get their uniform location
@@ -87,7 +89,7 @@ void Painter::paint(BoxEditor const & box_editor)
 	auto const & VAO = box_editor.getVAO();
 
 	glBindVertexArray(VAO);
-	glDrawArrays(GL_POINTS, 0, 1);
+	glDrawArrays(box_editor.draw_mode, 0, box_editor.no_vertices_to_draw);
 	glBindVertexArray(0);
 }
 

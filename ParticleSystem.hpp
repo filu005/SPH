@@ -4,7 +4,9 @@
 
 #include <array>
 #include <memory>
+#include <vector>
 
+#include "SphereModel.hpp"
 #include "Particle.hpp"
 #include "Paintable.hpp"
 
@@ -41,6 +43,8 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
+	void add_particle(glm::vec3 const position, glm::vec3 const velocity);
+
 	/**
 	 * Sorts particles by a cell (bin) index. cell is an elementary part
 	 * of Grid. Thanks to sorting the Grid can easily store an information about neighbours.
@@ -48,18 +52,17 @@ public:
 	void insert_sort_particles_by_indices();
 
 	GLsizei const bin_count = c::C;// == c::C
-	GLsizei const particle_count = c::N;// == c::N
+	GLsizei particle_count = c::N;// == c::N
 
 private:
-	std::array<Particle, c::N> particles;// wszystkie posortowane (wzgledem indeksu w tablicy grid) Particle
+	std::vector<Particle> particles;// wszystkie posortowane (wzgledem indeksu w tablicy grid) Particle
 
 	// Geometry, instance offset array
 	GLfloat const static point_vertices[3];
-	GLfloat const static sphere_vertices[720];//240
-	GLuint const static sphere_indices[576];
-	std::array<glm::mat4, c::N> model_matrices;
-	GLfloat bin_idx[c::N];
-	GLuint surface_particles[c::N];
+	SphereModel sphere_model;
+	std::vector<glm::mat4> model_matrices;
+	std::vector<GLfloat> bin_idx;
+	std::vector<GLuint> surface_particles;
 
 	// OpenGL
 	GLuint EBO;

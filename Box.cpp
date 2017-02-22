@@ -19,9 +19,9 @@ GLfloat const Box::cube_vertices[8 * 3] =
 
 GLuint const Box::cube_indices[16] =
 {
-	// Front
-	0, 1, 2, 3,
 	// Back
+	0, 1, 2, 3,
+	// Front
 	4, 5, 6, 7,
 	// Middle lines
 	0, 4, 1, 5, 2, 6, 3, 7

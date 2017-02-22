@@ -12,7 +12,6 @@
 
 // My includes
 #include "Application.hpp"
-//#include "constants.hpp"
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -59,7 +58,9 @@ int main(int argc, char* argv[])
 	glewExperimental = GL_TRUE;
 	glewInit();
 	glfwSetWindowPos(window, 100, 100);
+
 	glEnable(GL_PROGRAM_POINT_SIZE);
+	glPointSize(5.0f);
 
 	// Define the viewport dimensions
 	glViewport(0, 0, c::width, c::height);
@@ -71,7 +72,6 @@ int main(int argc, char* argv[])
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glCullFace(GL_FRONT_AND_BACK);
-	glPointSize(5.0f);
 
 	app = make_unique<Application>();
 	double t0 = glfwGetTime();
@@ -114,6 +114,10 @@ void do_movement(GLfloat dt)
 		camera.ProcessKeyboard(LEFT, dt);
 	if(keys[GLFW_KEY_D])
 		camera.ProcessKeyboard(RIGHT, dt);
+	if(keys[GLFW_KEY_EQUAL]) // +
+		app->box_editor.process_extrusion(c::extrusion_step);
+	if(keys[GLFW_KEY_MINUS]) // -
+		app->box_editor.process_extrusion(-c::extrusion_step);
 }
 
 // Is called whenever a key is pressed/released via GLFW
@@ -155,6 +159,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastY = yposf;
 
 	camera.ProcessMouseMovement(xoffset*2.5f, yoffset*2.5f);
+	app->box_editor.process_mouse_movement(static_cast<float>(xpos), static_cast<float>(ypos));
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
