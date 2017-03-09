@@ -42,7 +42,7 @@ namespace c
  */
 namespace c
 {
-	const int N = 5000;// init(not total!) particle count; def = 8000
+	const int N = 10000;// init(not total!) particle count; def = 8000
 	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;

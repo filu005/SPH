@@ -210,61 +210,67 @@ void Simulation::compute_density()
 	auto & grid = this->grid.grid;
 	
 	// go through all grids
-	for(auto & i : grid)
+	#pragma omp parallel default(shared)
 	{
-		Particle * particle_i_ptr = i.first_particle;
-
-		// go through all particles in grid [i]
-		for(int ii = 0; ii < i.no_particles; ++ii)
+		#pragma omp for schedule(static) 
+		//for (auto & i : grid)
+		for (int idx = 0; idx < grid.size(); ++idx)
 		{
-			Particle & particle_i = *particle_i_ptr;
-			particle_i.density = 0.0f;
+			auto & i = grid[idx];
+			Particle * particle_i_ptr = i.first_particle;
 
-			// go through neighbours of particle [ii] in grid [i]
-			for(int z = -1; z <= 1; ++z)
+			// go through all particles in grid [i]
+			for (int ii = 0; ii < i.no_particles; ++ii)
 			{
-				for(int y = -1; y <= 1; ++y)
+				Particle & particle_i = *particle_i_ptr;
+				particle_i.density = 0.0f;
+
+				// go through neighbours of particle [ii] in grid [i]
+				for (int z = -1; z <= 1; ++z)
 				{
-					for(int x = -1; x <= 1; ++x)
+					for (int y = -1; y <= 1; ++y)
 					{
-						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-						if(out_of_grid_scope(neighbour_cell_vector))
-							continue;
-
-						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-							continue;
-
-						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
-						
-						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						for (int x = -1; x <= 1; ++x)
 						{
-							Particle& particle_j = *particle_j_ptr;
-
-							glm::vec3 rVec = particle_i.position - particle_j.position;
-							float r_sq = dot(rVec, rVec);
-							float r = sqrt(r_sq);
-
-							if(r > c::H)
-							{
-								++particle_j_ptr;
+							glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							if (out_of_grid_scope(neighbour_cell_vector))
 								continue;
+
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+							if (neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+								continue;
+
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for (int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+
+								glm::vec3 rVec = particle_i.position - particle_j.position;
+								float r_sq = dot(rVec, rVec);
+								float r = sqrt(r_sq);
+
+								if (r > c::H)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								particle_i.density += c::particleMass*W_poly6(r_sq, h_sq, c::H);
+
+								++particle_j_ptr;
 							}
 
-							particle_i.density += c::particleMass*W_poly6(r_sq, h_sq, c::H);
-
-							++particle_j_ptr;
 						}
-
 					}
 				}
+
+				// compute pressure
+				particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1.0f);// Tait equation
+				//particle_i.pressure = c::gasStiffness * (particle_i.density - c::restDensity);
+
+				++particle_i_ptr;
 			}
-
-			// compute pressure
-			particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1.0f);// Tait equation
-			//particle_i.pressure = c::gasStiffness * (particle_i.density - c::restDensity);
-
-			++particle_i_ptr;
 		}
 	}
 }
@@ -279,94 +285,99 @@ void Simulation::compute_forces()
 	auto & grid = this->grid.grid;
 
 	// go through all grids
-	for(auto& i : grid)
+	#pragma omp parallel default(shared)
 	{
-		Particle * particle_i_ptr = i.first_particle;
-
-		// go through all particles in grid [i]
-		for(int ii = 0; ii < i.no_particles; ++ii)
+		#pragma omp for schedule(static)
+		for (int idx = 0; idx < grid.size(); ++idx)
 		{
-			Particle & particle_i = *particle_i_ptr;
+			auto & i = grid[idx];
+			Particle * particle_i_ptr = i.first_particle;
 
-			glm::vec3 totalF(0.0f);
-			glm::vec3 pressureF(0.0f), viscosityF(0.0f), externalF(0.0f), surfacetensionF(0.0f);
-			glm::vec3 colorFieldGrad(0.0f);
-			float colorFieldLap(0.0f);
-
-			// go through neighbours of particle [ii] in grid [i]
-			for(int z = -1; z <= 1; ++z)
+			// go through all particles in grid [i]
+			for (int ii = 0; ii < i.no_particles; ++ii)
 			{
-				for(int y = -1; y <= 1; ++y)
+				Particle & particle_i = *particle_i_ptr;
+
+				glm::vec3 totalF(0.0f);
+				glm::vec3 pressureF(0.0f), viscosityF(0.0f), externalF(0.0f), surfacetensionF(0.0f);
+				glm::vec3 colorFieldGrad(0.0f);
+				float colorFieldLap(0.0f);
+
+				// go through neighbours of particle [ii] in grid [i]
+				for (int z = -1; z <= 1; ++z)
 				{
-					for(int x = -1; x <= 1; ++x)
+					for (int y = -1; y <= 1; ++y)
 					{
-						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-						if(out_of_grid_scope(neighbour_cell_vector))
-							continue;
-
-						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-							continue;
-
-						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
-
-						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						for (int x = -1; x <= 1; ++x)
 						{
-							Particle& particle_j = *particle_j_ptr;
-
-							glm::vec3 rVec = particle_i.position - particle_j.position;
-							float r = glm::length(rVec);
-
-							if(r > c::H)
-							{
-								++particle_j_ptr;
+							glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							if (out_of_grid_scope(neighbour_cell_vector))
 								continue;
-							}
 
-							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-							colorFieldGrad += c::particleMass*gradW_poly / particle_j.density;
-							colorFieldLap += c::particleMass*LapW_poly6(r, c::H) / particle_j.density;
-
-							if(particle_i.id == particle_j.id)
-							{
-								++particle_j_ptr;
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+							if (neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
 								continue;
+
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for (int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+
+								glm::vec3 rVec = particle_i.position - particle_j.position;
+								float r = glm::length(rVec);
+
+								if (r > c::H)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+								colorFieldGrad += c::particleMass*gradW_poly / particle_j.density;
+								colorFieldLap += c::particleMass*LapW_poly6(r, c::H) / particle_j.density;
+
+								if (particle_i.id == particle_j.id)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;
+
+								viscosityF += 2.0f * c::particleMass / (particle_j.density + particle_i.density) * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
+
+								//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*c::particleMass)*GradW_spiky(r, c::H)*rVec;
+
+								pressureF += c::particleMass*(particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
+
+								++particle_j_ptr;
 							}
-
-							//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;
-
-							viscosityF += 2.0f * c::particleMass / (particle_j.density + particle_i.density) * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
-
-							//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*c::particleMass)*GradW_spiky(r, c::H)*rVec;
-
-							pressureF += c::particleMass*(particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
-
-							++particle_j_ptr;
 						}
 					}
 				}
+
+				float colorFieldGradMag = glm::length(colorFieldGrad);
+				if (colorFieldGradMag > c::surfaceThreshold)
+					surfacetensionF = -c::surfaceTension*colorFieldLap*colorFieldGrad / colorFieldGradMag;// -sigma*nabla^{2}[c_s]*(nabla[c_s]/|nabla[c_s]|)
+
+				if (colorFieldGradMag > c::surfaceParticleGradientThreshold)
+					particle_i.at_surface = false;
+				else
+					particle_i.at_surface = false;
+
+				pressureF *= -particle_i.density;
+				viscosityF *= c::viscosity;// *particle_i.density;
+				externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
+
+				totalF = pressureF + viscosityF + surfacetensionF + externalF;
+
+				particle_i.acc = totalF / particle_i.density;
+				particle_i.color_field_gradient_magnitude = colorFieldGradMag;
+
+				++particle_i_ptr;
+
 			}
-
-			float colorFieldGradMag = glm::length(colorFieldGrad);
-			if(colorFieldGradMag > c::surfaceThreshold)
-				surfacetensionF = -c::surfaceTension*colorFieldLap*colorFieldGrad / colorFieldGradMag;// -sigma*nabla^{2}[c_s]*(nabla[c_s]/|nabla[c_s]|)
-
-			if(colorFieldGradMag > c::surfaceParticleGradientThreshold)
-				particle_i.at_surface = false;
-			else
-				particle_i.at_surface = false;
-
-			pressureF *= -particle_i.density;
-			viscosityF *= c::viscosity;// *particle_i.density;
-			externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
-
-			totalF = pressureF + viscosityF + surfacetensionF + externalF;
-
-			particle_i.acc = totalF / particle_i.density;
-			particle_i.color_field_gradient_magnitude = colorFieldGradMag;
-
-			++particle_i_ptr;
-
 		}
 	}
 }
@@ -420,33 +431,39 @@ void Simulation::advance()
 	glm::vec3 kinetic_force(0.0f), potential_force(0.0f);
 	auto & particles = particle_system.particles;
 	
-	for(auto & p : particles)
+	#pragma omp parallel default(shared)
 	{
-		// 0. semi-implicit Euler
-		//glm::vec3 new_velocity = p.velocity + p.acc*dt;
-		//glm::vec3 new_position = p.position + new_velocity*dt;
+		#pragma omp for schedule(static)
+		//for (auto & p : particles)
+		for(int idx = 0; idx < particles.size(); ++idx)
+		{
+			auto & p = particles[idx];
+			// 0. semi-implicit Euler
+			//glm::vec3 new_velocity = p.velocity + p.acc*dt;
+			//glm::vec3 new_position = p.position + new_velocity*dt;
 
-		// 1. velocity Verlet O(dt^3)
-		glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
-		glm::vec3 new_velocity = (new_position - p.position) / dt;
+			// 1. velocity Verlet O(dt^3)
+			glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
+			glm::vec3 new_velocity = (new_position - p.position) / dt;
 
-		// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
-		//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
-		//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
-		
-		// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
-		//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
-		//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
-		//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
-		//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
+			// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
+			//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
+			//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
 
-		//p.previous_position = p.position;
-		p.position = new_position;
-		//p.eval_velocity = eval_velocity;
-		p.velocity = new_velocity;
+			// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
+			//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
+			//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
+			//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
+			//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
 
-		potential_force += p.position * glm::abs(p.acc);
-		kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f));
+			//p.previous_position = p.position;
+			p.position = new_position;
+			//p.eval_velocity = eval_velocity;
+			p.velocity = new_velocity;
+
+			potential_force += p.position * glm::abs(p.acc);
+			kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f));
+		}
 	}
 	
 	iteration_count++;
