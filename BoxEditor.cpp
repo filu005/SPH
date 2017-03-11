@@ -1,13 +1,14 @@
 #include "Camera.hpp"
 #include "Box.hpp"
 #include "Painter.hpp"
+#include "Emitters.hpp"
 #include "ParticleSystem.hpp"
 #include "BoxEditor.hpp"
 
 #include "glm/gtx/string_cast.hpp"
 #include <iostream>
 
-BoxEditor::BoxEditor() : draw_mode(GL_POINTS), no_vertices_to_draw(1), camera_ref(nullptr), bounding_box_ref(nullptr), particle_system_ref(nullptr), intersection_point(c::xmax, c::ymax, c::zmax), sphere_model(), _extrusion(0.02f)
+BoxEditor::BoxEditor() : draw_mode(GL_POINTS), no_vertices_to_draw(1), camera_ref(nullptr), bounding_box_ref(nullptr), particle_system_ref(nullptr), intersection_point(c::xmax, c::ymax, c::zmax), sphere_model(), _extrusion(0.02f), bbox_active_normal{0.0f}
 {
 	setup_buffers();
 }
@@ -51,12 +52,14 @@ void BoxEditor::process_mouse_click(float xpos, float ypos)
 	{
 		switch_editor_state(State::PLACING);
 		switch_VBO(sphere_VBO, sphere_model.no_vertices, GL_TRIANGLES);
+		new_emitter_velocity_vector = bbox_active_normal;
 	}
 	else if(editor_state == State::PLACING)
 	{
 		auto & ps = *particle_system_ref;
-		// add particle; place particle in place
-		ps.add_particle(intersection_point, glm::vec3(0.0f));
+		auto & emtt = *emitters_ref;
+		// add emitter; place emitter in place
+		emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector));
 		// reset extrusion
 		_extrusion = 0.02f;
 		// switch editor to free mode
@@ -65,19 +68,33 @@ void BoxEditor::process_mouse_click(float xpos, float ypos)
 	}
 }
 
-void BoxEditor::process_mouse_movement(float xpos, float ypos)
+void BoxEditor::process_mouse_movement(float xpos, float ypos, float xoffset, float yoffset)
 {
 	assert(camera_ref != nullptr);
 	auto const & camera = *camera_ref;
 
-	auto ray_origin = glm::vec3(camera.Position);
-	auto ray_direction = camera.create_ray(xpos, ypos);
+	if (editor_state == State::FREE_MODE)
+	{
+		auto ray_origin = glm::vec3(camera.Position);
+		auto ray_direction = camera.create_ray(xpos, ypos);
 
-	intersection_point = check_intersections_with_bounding_box(ray_origin, ray_direction, camera.Front);
+		intersection_point = check_intersections_with_bounding_box(ray_origin, ray_direction, camera.Front);
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(this->intersection_point), &this->intersection_point[0]);// replace data in VBO with new data
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ARRAY_BUFFER, this->VBO);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(this->intersection_point), &this->intersection_point[0]);// replace data in VBO with new data
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+	else if (editor_state == State::PLACING)
+	{
+		this->Yaw += xoffset;
+		this->Pitch += yoffset;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
+		front.y = sin(glm::radians(this->Pitch));
+		front.z = sin(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
+		//new_emitter_velocity_vector += glm::normalize(front);
+	}
 }
 
 void BoxEditor::process_extrusion(float extrusion)
@@ -104,6 +121,7 @@ glm::vec3 BoxEditor::check_intersections_with_bounding_box(glm::vec3 const ray_o
 {
 	auto const & bbox = *bounding_box_ref;
 	auto intersection = glm::vec3(0.0f);
+	bbox_active_normal = glm::vec3(0.0f);
 
 	for(int i = 0; i < bbox.no_surfaces; ++i)
 	{
@@ -125,8 +143,11 @@ glm::vec3 BoxEditor::check_intersections_with_bounding_box(glm::vec3 const ray_o
 		auto temp_intersection = ray_origin + ray_direction*t + std::abs(_extrusion)*bbox_normal;
 		
 		//if(point_in_aabb(bbox.bottom_left_back_corner, bbox.top_right_front_corner, intersection))
-		if(point_in_aabb(glm::vec3(c::xmax, c::ymax, c::zmax), glm::vec3(c::xmin, c::ymin, c::zmin), temp_intersection))
+		if (point_in_aabb(glm::vec3(c::xmax, c::ymax, c::zmax), glm::vec3(c::xmin, c::ymin, c::zmin), temp_intersection))
+		{
 			intersection = temp_intersection;
+			bbox_active_normal = bbox_normal;
+		}
 	}
 
 	return intersection;

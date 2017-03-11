@@ -142,6 +142,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	Camera& camera = app->camera;
+	BoxEditor& bedit = app->box_editor;
 	GLfloat const xposf = static_cast<GLfloat>(xpos);
 	GLfloat const yposf = static_cast<GLfloat>(ypos);
 
@@ -158,8 +159,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xposf;
 	lastY = yposf;
 
-	camera.ProcessMouseMovement(xoffset*2.5f, yoffset*2.5f);
-	app->box_editor.process_mouse_movement(static_cast<float>(xpos), static_cast<float>(ypos));
+	if (bedit.editor_state == BoxEditor::FREE_MODE)
+	{
+		camera.ProcessMouseMovement(xoffset*2.5f, yoffset*2.5f);
+	}
+	bedit.process_mouse_movement(static_cast<float>(xpos), static_cast<float>(ypos), static_cast<float>(xoffset), static_cast<float>(yoffset));
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

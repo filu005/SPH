@@ -10,6 +10,7 @@
 #include "MCMesh.hpp"
 #include "Grid.hpp"
 #include "Box.hpp"
+#include "Emitters.hpp"
 
 /**
  * Basicly main class where all computation takes place.
@@ -36,6 +37,7 @@ public:
 	// main components and also Paintables
 	Skybox skybox;
 	ParticleSystem particle_system;
+	Emitters emitters;
 	DistanceField distance_field;
 	MCMesh mesh;
 	Box bounding_box;

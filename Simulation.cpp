@@ -4,6 +4,9 @@
 Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
 {
 	start_time = std::chrono::high_resolution_clock::now();
+	emitters.set_particle_system(particle_system);
+	//emitters.add_emitter(Emitter(glm::vec3(-0.1f, -0.2f, 0.0f)));
+	emitters.add_emitter(Emitter(glm::vec3(0.1f, -0.4f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
 }
 
 Simulation::~Simulation()
@@ -173,31 +176,31 @@ std::vector<Particle> Simulation::extract_surface_particles_2()
 void Simulation::emit_particles()
 {
 	using namespace c;
-
-	if(particle_count >= c::N)
-		return;
-
-	float const additional_margin = 0.5f;
-	float const placement_mod = 0.4f;
-	auto & particles = particle_system.particles;
-
-	particle_system.add_particle(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f));
-
+	
 	// dam break setup
-	for(float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
-		for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
-			for(float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
-			{
-				Particle& tp = particles[particle_count];
-				tp.position = glm::vec3(x, y, z);
-				tp.velocity = glm::vec3(0.0f);
-				//tp.eval_velocity = glm::vec3(0.0f);
-				//tp.previous_position = tp.position;
-				++particle_count;
-				if(particle_count >= c::N)
-					return;
-			}
+	if (particle_count < c::N)
+	{
+		float const additional_margin = 0.5f;
+		float const placement_mod = 0.4f;
+		auto & particles = particle_system.particles;
 
+		for (float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
+			for (float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
+				for (float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+				{
+					Particle& tp = particles[particle_count];
+					tp.position = glm::vec3(x, y, z);
+					tp.velocity = glm::vec3(0.0f);
+					//tp.eval_velocity = glm::vec3(0.0f);
+					//tp.previous_position = tp.position;
+					++particle_count;
+					if (particle_count >= c::N)
+						return;
+				}
+	}
+
+	if(emitters.is_any_emitter_alive())
+		emitters.emit();
 }
 
 void Simulation::compute_density()

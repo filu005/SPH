@@ -233,7 +233,8 @@ void ParticleSystem::add_particle(glm::vec3 const position, glm::vec3 const velo
 	++particle_count;
 
 	// resize buffers
-	setup_buffers();
+	reset_buffers();
+	//setup_buffers();
 }
 
 void ParticleSystem::move_particles_around(float dt)
