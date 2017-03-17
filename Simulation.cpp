@@ -6,7 +6,7 @@ Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_fil
 	start_time = std::chrono::high_resolution_clock::now();
 	emitters.set_particle_system(particle_system);
 	//emitters.add_emitter(Emitter(glm::vec3(-0.1f, -0.2f, 0.0f)));
-	emitters.add_emitter(Emitter(glm::vec3(0.1f, -0.4f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
+	emitters.add_emitter(Emitter(glm::vec3(0.1f, c::ymin + c::H*2.0f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
 }
 
 Simulation::~Simulation()
@@ -184,9 +184,13 @@ void Simulation::emit_particles()
 		float const placement_mod = 0.4f;
 		auto & particles = particle_system.particles;
 
-		for (float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
-			for (float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
-				for (float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		//for(float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
+		//	for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
+		//		for(float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+
+		for (float y = ymin + 2.0f*c::H; y < ymax*placement_mod; y += c::H*additional_margin)
+			for (float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+				for (float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
 				{
 					Particle& tp = particles[particle_count];
 					tp.position = glm::vec3(x, y, z);

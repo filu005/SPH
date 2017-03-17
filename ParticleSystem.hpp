@@ -62,11 +62,13 @@ private:
 	SphereModel sphere_model;
 	std::vector<glm::mat4> model_matrices;
 	std::vector<GLfloat> bin_idx;
+	std::vector<GLfloat> particle_pressure;
 	std::vector<GLuint> surface_particles;
 
 	// OpenGL
 	GLuint EBO;
 	GLuint model_mat_VBO;
 	GLuint bin_idx_VBO;
+	GLuint particle_pressure_VBO;
 	GLuint at_surface_VBO;
 };

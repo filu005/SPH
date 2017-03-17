@@ -35,18 +35,20 @@ namespace c
 
 /**
  * grid constants:
- * N	number of particles
- * [K, L, M]	count of bins in X, Y, Z dimensions; defines number of grid bins
- * [xmin, xmax]	dimensions of neighbour grid (in world coordinates)
- * dx, dy, dz	dimensions of single bin
+ * N			init (not total!) number of particles
+ * [K, L, M]	count of bins in X, Y, Z dimensions; defines number of grid bins.
+ *				set only as power of 2 (other values causes round-off errors)
+ * [xmin, xmax]	dimensions of neighbour grid (in world coordinates).
+ *				best to keep those min/max constants with opposite signs
+ * dx, dy, dz	dimensions of single bin. only power of 2
  */
 namespace c
 {
-	const int N = 8000;// init(not total!) particle count; def = 8000
-	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
+	const int N = 2500; // Simulation::particle count; def = 8000
+	const int K = 16, L = 8, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
-	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
-	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.25f;
+	const float xmin = -0.25f, ymin = -0.125f, zmin = -0.25f;
+	const float xmax = 0.25f, ymax = 0.125f, zmax = 0.25f;
 	const float dx = (xmax - xmin) / static_cast<float>(K);// tez tylko potegi 2, np. 2^(-6)=1/64
 	const float dy = (ymax - ymin) / static_cast<float>(L);
 	const float dz = (zmax - zmin) / static_cast<float>(M);

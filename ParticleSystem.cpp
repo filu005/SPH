@@ -68,6 +68,7 @@ ParticleSystem::ParticleSystem()
 	particles.resize(c::N);
 	model_matrices.resize(c::N);
 	bin_idx.resize(c::N);
+	particle_pressure.resize(c::N);
 	surface_particles.resize(c::N);
 
 	setup_buffers();
@@ -82,6 +83,9 @@ void ParticleSystem::setup_buffers(void)
 {
 	using particle_system::get_cell_index;
 
+	auto max_particle_pressure = std::max_element(particles.begin(), particles.end(), [](Particle const & pa, Particle const & pb) { return pa.pressure < pb.pressure; });
+	auto max_pressure = max_particle_pressure->pressure;
+
 	int index = 0;
 	for(auto const & p : particles)
 	{
@@ -91,6 +95,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+		particle_pressure[index] = p.pressure / max_pressure;
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -108,8 +113,13 @@ void ParticleSystem::setup_buffers(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->bin_idx[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	glGenBuffers(1, &this->particle_pressure_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->particle_pressure[0], GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	glGenBuffers(1, &this->at_surface_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO); 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLuint) * particle_count, &this->surface_particles[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -140,6 +150,11 @@ void ParticleSystem::setup_buffers(void)
 	glVertexAttribDivisor(1, 1);
 	//By setting the attribute divisor to 1 we're effectively telling OpenGL that the vertex attribute at attribute location x is an instanced array.
 
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glVertexAttribDivisor(7, 1);
+
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 1, GL_UNSIGNED_INT, GL_FALSE, 0, (GLvoid*) 0);
@@ -155,7 +170,6 @@ void ParticleSystem::setup_buffers(void)
 	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) (2 * sizeof(glm::vec4)));
 	glEnableVertexAttribArray(5);
 	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*) (3 * sizeof(glm::vec4)));
-
 	glVertexAttribDivisor(2, 1);
 	glVertexAttribDivisor(3, 1);
 	glVertexAttribDivisor(4, 1);
@@ -167,6 +181,7 @@ void ParticleSystem::setup_buffers(void)
 
 void ParticleSystem::reset_buffers()
 {
+	glDisableVertexAttribArray(7);
 	glDisableVertexAttribArray(5);
 	glDisableVertexAttribArray(4);
 	glDisableVertexAttribArray(3);
@@ -176,6 +191,7 @@ void ParticleSystem::reset_buffers()
 	//glDeleteBuffers(1, &this->EBO);
 	glDeleteBuffers(1, &this->VBO); 
 	glDeleteBuffers(1, &this->at_surface_VBO);
+	glDeleteBuffers(1, &this->particle_pressure_VBO);
 	glDeleteBuffers(1, &this->bin_idx_VBO);
 	glDeleteBuffers(1, &this->model_mat_VBO);
 	glDeleteVertexArrays(1, &this->VAO);
@@ -187,6 +203,9 @@ void ParticleSystem::update_buffers()
 {
 	using particle_system::get_cell_index;
 
+	auto max_particle_pressure = std::max_element(particles.begin(), particles.end(), [](Particle const & pa, Particle const & pb) { return pa.pressure < pb.pressure; });
+	auto max_pressure = max_particle_pressure->pressure;
+
 	int index = 0;
 	for(auto const & p : particles)
 	{
@@ -196,6 +215,7 @@ void ParticleSystem::update_buffers()
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+		particle_pressure[index] = p.pressure / max_pressure;
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -208,6 +228,10 @@ void ParticleSystem::update_buffers()
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->bin_idx_VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->bin_idx[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->particle_pressure[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
@@ -228,6 +252,7 @@ void ParticleSystem::add_particle(glm::vec3 const position, glm::vec3 const velo
 	particles.push_back(Particle(position, velocity));
 	model_matrices.push_back(glm::mat4());
 	bin_idx.push_back(0.0f);
+	particle_pressure.push_back(0.0f);
 	surface_particles.push_back(0u);
 
 	++particle_count;
