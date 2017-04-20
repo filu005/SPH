@@ -6,7 +6,11 @@ Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_fil
 	start_time = std::chrono::high_resolution_clock::now();
 	emitters.set_particle_system(particle_system);
 	//emitters.add_emitter(Emitter(glm::vec3(-0.1f, -0.2f, 0.0f)));
-	emitters.add_emitter(Emitter(glm::vec3(0.1f, c::ymin + c::H*2.0f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
+	//emitters.add_emitter(Emitter(glm::vec3(0.1f, c::ymin + c::H*2.0f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
+	emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
+	emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(3.5f, 0.3f, 0.0f)));
+	emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(0.0f, 0.3f, -3.5f)));
+	emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(0.0f, 0.3f, 3.5f)));
 }
 
 Simulation::~Simulation()
@@ -86,72 +90,81 @@ std::vector<Particle> Simulation::extract_surface_particles()
 	std::vector<Particle> surface_particles;
 	std::vector<float> threshold_values;
 	surface_particles.reserve(static_cast<unsigned int>(particle_system.particle_count * 0.5f));
+	threshold_values.reserve(particle_system.particle_count);
 
 	// go through all grids
-	for(auto & i : grid)
+	#pragma omp parallel default(shared)
 	{
-		Particle * particle_i_ptr = i.first_particle;
-
-		// go through all particles in grid [i]
-		for(int ii = 0; ii < i.no_particles; ++ii)
+		#pragma omp for schedule(static)
+		//for (auto & i : grid)
+		for(int idx = 0; idx < grid.size(); ++idx)
 		{
-			Particle & particle_i = *particle_i_ptr;
-			glm::vec3 center_mass_distance{ 0.f };
-			auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) + glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
-			glm::vec3 mass_x_position_sum{ 0.f };
-			auto mass_sum = 0.f;
-			auto neighbourhood_no = 0u;
+			auto & i = grid[idx];
+			Particle * particle_i_ptr = i.first_particle;
 
-			// go through neighbours of particle [ii] in grid [i]
-			for(int z = -1; z <= 1; ++z)
+			// go through all particles in grid [i]
+			for(int ii = 0; ii < i.no_particles; ++ii)
 			{
-				for(int y = -1; y <= 1; ++y)
+				Particle & particle_i = *particle_i_ptr;
+				glm::vec3 center_mass_distance{ 0.f };
+				auto neighbourhood_centre = get_grid_coords_in_real_system(particle_i.position) + glm::vec3(c::dx*0.5f, c::dy*0.5f, c::dz*0.5f);
+				glm::vec3 mass_x_position_sum{ 0.f };
+				auto mass_sum = 0.f;
+				auto neighbourhood_no = 0u;
+
+				// go through neighbours of particle [ii] in grid [i]
+				for(int z = -1; z <= 1; ++z)
 				{
-					for(int x = -1; x <= 1; ++x)
+					for(int y = -1; y <= 1; ++y)
 					{
-						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-						//assert(!out_of_grid_scope(neighbour_cell_vector) && "jezus maria jakas czasteczka wyskoczyla!");
-						if(out_of_grid_scope(neighbour_cell_vector))
-							continue;
-
-						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-
-						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
-
-						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+						for(int x = -1; x <= 1; ++x)
 						{
-							Particle& particle_j = *particle_j_ptr;
-							// wydaje mi sie ze position_j_in_neighbourhood powinno byc potraktowane glm::abs()
-							// ale liczac bez wartosci bezwzglednej dostaje lepsze rezultaty
-							glm::vec3 position_j_in_neighbourhood = (neighbourhood_centre - particle_j.position);
-							mass_x_position_sum += c::particleMass * position_j_in_neighbourhood;
-							mass_sum += c::particleMass;
+							glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							//assert(!out_of_grid_scope(neighbour_cell_vector) && "jezus maria jakas czasteczka wyskoczyla!");
+							if(out_of_grid_scope(neighbour_cell_vector))
+								continue;
 
-							++neighbourhood_no;
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
 
-							++particle_j_ptr;
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+								// wydaje mi sie ze position_j_in_neighbourhood powinno byc potraktowane glm::abs()
+								// ale liczac bez wartosci bezwzglednej dostaje lepsze rezultaty
+								glm::vec3 position_j_in_neighbourhood = (neighbourhood_centre - particle_j.position);
+								mass_x_position_sum += c::particleMass * position_j_in_neighbourhood;
+								mass_sum += c::particleMass;
+
+								++neighbourhood_no;
+
+								++particle_j_ptr;
+							}
+
 						}
-
 					}
 				}
+
+				//posumowane
+				center_mass_distance = mass_x_position_sum / mass_sum;
+
+				// if its distance to the center of mass of its neighborhood
+				// is larger than a certain threshold
+				if(glm::length(center_mass_distance) > c::centerMassThreshold || neighbourhood_no <= c::surfaceNeighbourhoodThreshold)
+				{
+					particle_i.at_surface = true;
+					#pragma omp critical
+					surface_particles.emplace_back(particle_i);
+				}
+				else
+					particle_i.at_surface = false;
+
+				#pragma omp critical
+				threshold_values.push_back(glm::length(center_mass_distance));
+
+				++particle_i_ptr;
 			}
-
-			//posumowane
-			center_mass_distance = mass_x_position_sum / mass_sum;
-
-			// if its distance to the center of mass of its neighborhood
-			// is larger than a certain threshold
-			if(glm::length(center_mass_distance) > c::centerMassThreshold || neighbourhood_no <= c::surfaceNeighbourhoodThreshold)
-			{
-				particle_i.at_surface = true;
-				surface_particles.emplace_back(particle_i);
-			}
-			else
-				particle_i.at_surface = false;
-
-			threshold_values.push_back(glm::length(center_mass_distance));
-
-			++particle_i_ptr;
 		}
 	}
 
@@ -188,9 +201,9 @@ void Simulation::emit_particles()
 		//	for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
 		//		for(float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
 
-		for (float y = ymin + 2.0f*c::H; y < ymax*placement_mod; y += c::H*additional_margin)
-			for (float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
-				for (float x = xmin*placement_mod; x < xmax*placement_mod; x += c::H*additional_margin)
+		for (float y = c::ymin + 2.0f*c::H; y < c::ymax*placement_mod; y += c::H*additional_margin)
+			for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+				for (float x = c::xmin*placement_mod; x < c::xmax*placement_mod; x += c::H*additional_margin)
 				{
 					Particle& tp = particles[particle_count];
 					tp.position = glm::vec3(x, y, z);

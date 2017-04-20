@@ -1,4 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
+#include <numeric>
 
 #include "Painter.hpp"
 #include "SphereModel.hpp"
@@ -82,10 +83,8 @@ void ParticleSystem::paint(Painter& p) const
 void ParticleSystem::setup_buffers(void)
 {
 	using particle_system::get_cell_index;
-
-	auto max_particle_pressure = std::max_element(particles.begin(), particles.end(), [](Particle const & pa, Particle const & pb) { return pa.pressure < pb.pressure; });
-	auto max_pressure = max_particle_pressure->pressure;
-
+	auto average_pressure = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.pressure; }) / particles.size();
+	
 	int index = 0;
 	for(auto const & p : particles)
 	{
@@ -95,7 +94,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_pressure[index] = p.pressure / max_pressure;
+		particle_pressure[index] = p.pressure / (average_pressure * 1.5f);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -182,6 +181,7 @@ void ParticleSystem::setup_buffers(void)
 void ParticleSystem::reset_buffers()
 {
 	glDisableVertexAttribArray(7);
+	glDisableVertexAttribArray(6);
 	glDisableVertexAttribArray(5);
 	glDisableVertexAttribArray(4);
 	glDisableVertexAttribArray(3);
@@ -202,9 +202,7 @@ void ParticleSystem::reset_buffers()
 void ParticleSystem::update_buffers()
 {
 	using particle_system::get_cell_index;
-
-	auto max_particle_pressure = std::max_element(particles.begin(), particles.end(), [](Particle const & pa, Particle const & pb) { return pa.pressure < pb.pressure; });
-	auto max_pressure = max_particle_pressure->pressure;
+	auto average_pressure = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.pressure; }) / particles.size();
 
 	int index = 0;
 	for(auto const & p : particles)
@@ -215,7 +213,7 @@ void ParticleSystem::update_buffers()
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_pressure[index] = p.pressure / max_pressure;
+		particle_pressure[index] = p.pressure / (average_pressure * 1.5f);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}

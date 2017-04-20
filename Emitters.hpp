@@ -13,7 +13,7 @@ class ParticleSystem;
  */
 struct Emitter
 {
-	Emitter(glm::vec3 pos, glm::vec3 vel) : position(pos), emit_velocity(vel), ttl(3.0f), last_emission_time(0.0f), delay(c::dt), emit_radius(0.5f * c::H) { }
+	Emitter(glm::vec3 pos, glm::vec3 vel) : position(pos), emit_velocity(vel), ttl(6.0f), last_emission_time(0.0f), delay(c::dt), emit_radius(0.5f * c::H) { }
 	Emitter(glm::vec3 pos) : Emitter(pos, glm::vec3(0.0f)) { }
 	glm::vec3 position;
 	glm::vec3 emit_velocity;

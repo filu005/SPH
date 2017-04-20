@@ -21,8 +21,8 @@ namespace c
 	const float wall_damping = -100.0f;
 
 	// viewport dimensions
-	const int width = 800;
-	const int height = 600;
+	const int width = 1024;
+	const int height = 768;
 	const float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
 	const float viewHeight = 1.2f;
 	const float viewWidth = aspectRatio * viewHeight;// 1.6
@@ -44,7 +44,7 @@ namespace c
  */
 namespace c
 {
-	const int N = 2500; // Simulation::particle count; def = 8000
+	const int N = 2000; // Simulation::particle count; def = 8000
 	const int K = 16, L = 8, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.25f, ymin = -0.125f, zmin = -0.25f;

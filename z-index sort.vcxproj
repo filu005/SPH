@@ -48,6 +48,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\libs\SOIL\src;C:\libs\glm;C:\libs\glfw-3.1.2.bin.WIN32\include;C:\libs\glew-1.13.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -69,6 +70,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -84,6 +86,7 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="BoxEditor.cpp" />
     <ClCompile Include="DistanceField.cpp" />
+    <ClCompile Include="Emitters.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MarchingCubes.cpp" />
@@ -101,6 +104,7 @@
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="constants.hpp" />
     <ClInclude Include="DistanceField.hpp" />
+    <ClInclude Include="Emitters.hpp" />
     <ClInclude Include="Grid.hpp" />
     <ClInclude Include="MarchingCubes.h" />
     <ClInclude Include="MCMesh.hpp" />

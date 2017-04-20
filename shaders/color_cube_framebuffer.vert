@@ -15,7 +15,8 @@ void main()
 	const float one_volBoundingBox_ratio = 2.0f;
 	
     vec4 pos = projection * view * model * vec4(position, 1.0);
-    posout = vec4(position * one_volBoundingBox_ratio, 1.0);
+    // posout = vec4(position * one_volBoundingBox_ratio, 1.0);
+    posout = vec4(position.x * 2.0f, position.y * 4.0f, position.z * 2.0f, 1.0);
     // tex_coord = tex_coords;
     gl_Position = pos;
 }

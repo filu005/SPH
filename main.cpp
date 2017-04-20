@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
 	// Initialize GLEW to setup the OpenGL Function pointers
 	glewExperimental = GL_TRUE;
 	glewInit();
-	glfwSetWindowPos(window, 100, 100);
+	glfwSetWindowPos(window, 0, 32);
 
 	glEnable(GL_PROGRAM_POINT_SIZE);
 	glPointSize(5.0f);
