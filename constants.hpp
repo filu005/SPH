@@ -76,3 +76,9 @@ namespace c
 {
 	auto constexpr extrusion_step = 0.025f;
 }
+
+namespace c
+{
+	auto constexpr nutrient_diffusion = 0.1f;
+	auto constexpr nutrient_consumption_rate = 0.0f;
+}

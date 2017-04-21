@@ -69,7 +69,7 @@ ParticleSystem::ParticleSystem()
 	particles.resize(c::N);
 	model_matrices.resize(c::N);
 	bin_idx.resize(c::N);
-	particle_pressure.resize(c::N);
+	particle_color.resize(c::N);
 	surface_particles.resize(c::N);
 
 	setup_buffers();
@@ -83,7 +83,6 @@ void ParticleSystem::paint(Painter& p) const
 void ParticleSystem::setup_buffers(void)
 {
 	using particle_system::get_cell_index;
-	auto average_pressure = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.pressure; }) / particles.size();
 	
 	int index = 0;
 	for(auto const & p : particles)
@@ -94,7 +93,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_pressure[index] = p.pressure / (average_pressure * 1.5f);
+		particle_color[index] = compute_particle_color(p);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -112,9 +111,9 @@ void ParticleSystem::setup_buffers(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->bin_idx[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	glGenBuffers(1, &this->particle_pressure_VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->particle_pressure[0], GL_DYNAMIC_DRAW);
+	glGenBuffers(1, &this->particle_color_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->particle_color[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &this->at_surface_VBO);
@@ -149,7 +148,7 @@ void ParticleSystem::setup_buffers(void)
 	glVertexAttribDivisor(1, 1);
 	//By setting the attribute divisor to 1 we're effectively telling OpenGL that the vertex attribute at attribute location x is an instanced array.
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
 	glEnableVertexAttribArray(7);
 	glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glVertexAttribDivisor(7, 1);
@@ -191,7 +190,7 @@ void ParticleSystem::reset_buffers()
 	//glDeleteBuffers(1, &this->EBO);
 	glDeleteBuffers(1, &this->VBO); 
 	glDeleteBuffers(1, &this->at_surface_VBO);
-	glDeleteBuffers(1, &this->particle_pressure_VBO);
+	glDeleteBuffers(1, &this->particle_color_VBO);
 	glDeleteBuffers(1, &this->bin_idx_VBO);
 	glDeleteBuffers(1, &this->model_mat_VBO);
 	glDeleteVertexArrays(1, &this->VAO);
@@ -202,7 +201,6 @@ void ParticleSystem::reset_buffers()
 void ParticleSystem::update_buffers()
 {
 	using particle_system::get_cell_index;
-	auto average_pressure = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.pressure; }) / particles.size();
 
 	int index = 0;
 	for(auto const & p : particles)
@@ -213,7 +211,7 @@ void ParticleSystem::update_buffers()
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_pressure[index] = p.pressure / (average_pressure * 1.5f);
+		particle_color[index] = compute_particle_color(p);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -228,8 +226,8 @@ void ParticleSystem::update_buffers()
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->bin_idx[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, this->particle_pressure_VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->particle_pressure[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->particle_color[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
@@ -245,12 +243,21 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 	return position_color_field_data;
 }
 
+GLfloat ParticleSystem::compute_particle_color(Particle const & p)
+{
+	static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
+
+	return p.nutrient;// / average;// * 1.5f
+}
+
 void ParticleSystem::add_particle(glm::vec3 const position, glm::vec3 const velocity)
 {
-	particles.push_back(Particle(position, velocity));
+	Particle p(position, velocity);
+	p.add_nutrient(RANDOM(0.2f, 2.5f));
+	particles.push_back(p);
 	model_matrices.push_back(glm::mat4());
 	bin_idx.push_back(0.0f);
-	particle_pressure.push_back(0.0f);
+	particle_color.push_back(0.0f);
 	surface_particles.push_back(0u);
 
 	++particle_count;

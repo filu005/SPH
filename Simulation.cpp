@@ -7,10 +7,10 @@ Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_fil
 	emitters.set_particle_system(particle_system);
 	//emitters.add_emitter(Emitter(glm::vec3(-0.1f, -0.2f, 0.0f)));
 	//emitters.add_emitter(Emitter(glm::vec3(0.1f, c::ymin + c::H*2.0f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
-	emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
-	emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(3.5f, 0.3f, 0.0f)));
-	emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(0.0f, 0.3f, -3.5f)));
-	emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(0.0f, 0.3f, 3.5f)));
+	//emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
+	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(3.5f, 0.3f, 0.0f)));
+	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(0.0f, 0.3f, -3.5f)));
+	//emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(0.0f, 0.3f, 3.5f)));
 }
 
 Simulation::~Simulation()
@@ -33,6 +33,10 @@ void Simulation::run(float dt)
 	bin_particles_in_grid();
 
 	compute_density();
+
+	//for(int i = 0; i < 5; ++i)
+		compute_nutrient_concentration();
+
 	compute_forces();
 	resolve_collisions();
 	advance();
@@ -218,6 +222,98 @@ void Simulation::emit_particles()
 
 	if(emitters.is_any_emitter_alive())
 		emitters.emit();
+}
+
+void Simulation::compute_nutrient_concentration()
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using namespace c;
+	const float h_sq = c::H*c::H;
+
+	auto & grid = this->grid.grid;
+
+	// go through all grids
+	#pragma omp parallel default(shared)
+	{
+		// for (auto & i : grid)
+		#pragma omp for schedule(static) 
+		for(int idx = 0; idx < grid.size(); ++idx)
+		{
+			auto & i = grid[idx];
+			Particle * particle_i_ptr = i.first_particle;
+
+			// go through all particles in grid [i]
+			for(int ii = 0; ii < i.no_particles; ++ii)
+			{
+				Particle & particle_i = *particle_i_ptr;
+				auto nutrient = 0.0f;
+
+				// go through neighbours of particle [ii] in grid [i]
+				for(int z = -1; z <= 1; ++z)
+				{
+					for(int y = -1; y <= 1; ++y)
+					{
+						for(int x = -1; x <= 1; ++x)
+						{
+							glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							if(out_of_grid_scope(neighbour_cell_vector))
+								continue;
+
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+							if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+								continue;
+
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+
+								glm::vec3 rVec = particle_i.position - particle_j.position;
+								float r_sq = dot(rVec, rVec);
+								float r = sqrt(r_sq);
+
+								if(r > c::H)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								nutrient += (particle_j.nutrient - particle_i.nutrient)*(c::particleMass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
+
+								++particle_j_ptr;
+							}
+
+						}
+					}
+				}
+
+				nutrient *= c::nutrient_diffusion;
+				nutrient -= c::nutrient_consumption_rate;
+
+				// compute nutrient concentration
+				particle_i.new_nutrient = nutrient;
+
+				++particle_i_ptr;
+			}
+		}
+	}
+
+	auto & particles = particle_system.particles;
+
+	//#pragma omp parallel default(shared)
+	{
+		//#pragma omp for schedule(static)
+		//for (auto & p : particles)
+		for(int idx = 0; idx < particles.size(); ++idx)
+		{
+			auto & p = particles[idx];
+
+			p.nutrient = p.nutrient + p.new_nutrient*c::dt*0.2f;
+
+		}
+	}
 }
 
 void Simulation::compute_density()

@@ -43,6 +43,7 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
+	GLfloat compute_particle_color(Particle const & p);
 	void add_particle(glm::vec3 const position, glm::vec3 const velocity);
 
 	/**
@@ -62,13 +63,13 @@ private:
 	SphereModel sphere_model;
 	std::vector<glm::mat4> model_matrices;
 	std::vector<GLfloat> bin_idx;
-	std::vector<GLfloat> particle_pressure;
+	std::vector<GLfloat> particle_color;
 	std::vector<GLuint> surface_particles;
 
 	// OpenGL
 	GLuint EBO;
 	GLuint model_mat_VBO;
 	GLuint bin_idx_VBO;
-	GLuint particle_pressure_VBO;
+	GLuint particle_color_VBO;
 	GLuint at_surface_VBO;
 };

@@ -59,6 +59,7 @@ private:
 	std::vector<Particle> extract_surface_particles_2();
 
 	void emit_particles();
+	void compute_nutrient_concentration();
 	void compute_density();
 	void compute_forces();
 	void advance();
