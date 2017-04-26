@@ -128,7 +128,7 @@ void MCMesh::generate_mesh(std::array<GridCell, c::C> const & grid)
 									continue;
 								}
 
-								density += c::particleMass*kernel::W_poly6(r_sq, h_sq, c::H);
+								density += particle.mass*kernel::W_poly6(r_sq, h_sq, c::H);
 
 								++particle_ptr;
 							}

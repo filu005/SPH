@@ -44,11 +44,13 @@ namespace c
  */
 namespace c
 {
-	const int N = 2000; // Simulation::particle count; def = 8000
-	const int K = 16, L = 8, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
+	const int N = 5000; // Simulation::particle count; def = 8000
+	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
-	const float xmin = -0.25f, ymin = -0.125f, zmin = -0.25f;
-	const float xmax = 0.25f, ymax = 0.125f, zmax = 0.25f;
+	//const float xmin = -0.25f, ymin = -0.125f, zmin = -0.25f;
+	//const float xmax = 0.25f, ymax = 0.125f, zmax = 0.25f;
+	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
+	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.25f;
 	const float dx = (xmax - xmin) / static_cast<float>(K);// tez tylko potegi 2, np. 2^(-6)=1/64
 	const float dy = (ymax - ymin) / static_cast<float>(L);
 	const float dz = (zmax - zmin) / static_cast<float>(M);
@@ -79,6 +81,6 @@ namespace c
 
 namespace c
 {
-	auto constexpr nutrient_diffusion = 0.1f;
+	auto constexpr nutrient_diffusion = 0.0f;
 	auto constexpr nutrient_consumption_rate = 0.0f;
 }

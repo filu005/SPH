@@ -138,8 +138,8 @@ std::vector<Particle> Simulation::extract_surface_particles()
 								// wydaje mi sie ze position_j_in_neighbourhood powinno byc potraktowane glm::abs()
 								// ale liczac bez wartosci bezwzglednej dostaje lepsze rezultaty
 								glm::vec3 position_j_in_neighbourhood = (neighbourhood_centre - particle_j.position);
-								mass_x_position_sum += c::particleMass * position_j_in_neighbourhood;
-								mass_sum += c::particleMass;
+								mass_x_position_sum += particle_j.mass * position_j_in_neighbourhood;
+								mass_sum += particle_j.mass;
 
 								++neighbourhood_no;
 
@@ -201,13 +201,13 @@ void Simulation::emit_particles()
 		float const placement_mod = 0.4f;
 		auto & particles = particle_system.particles;
 
-		//for(float x = xmin*placement_mod - 0.25f; x < xmax*placement_mod; x += c::H*additional_margin)
-		//	for(float y = ymin*placement_mod - 0.25f; y < ymax*placement_mod; y += c::H*additional_margin)
-		//		for(float z = zmin*placement_mod - 0.1f; z < zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		//for (float y = c::ymin + 2.0f*c::H; y < c::ymax*placement_mod; y += c::H*additional_margin)
+		//	for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		//		for (float x = c::xmin*placement_mod; x < c::xmax*placement_mod; x += c::H*additional_margin)
 
-		for (float y = c::ymin + 2.0f*c::H; y < c::ymax*placement_mod; y += c::H*additional_margin)
-			for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
-				for (float x = c::xmin*placement_mod; x < c::xmax*placement_mod; x += c::H*additional_margin)
+		for(float x = c::xmin*placement_mod - 0.25f; x < c::xmax*placement_mod; x += c::H*additional_margin)
+			for(float y = c::ymin*placement_mod - 0.25f; y < c::ymax*placement_mod; y += c::H*additional_margin)
+				for(float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
 				{
 					Particle& tp = particles[particle_count];
 					tp.position = glm::vec3(x, y, z);
@@ -280,7 +280,7 @@ void Simulation::compute_nutrient_concentration()
 									continue;
 								}
 
-								nutrient += (particle_j.nutrient - particle_i.nutrient)*(c::particleMass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
+								nutrient += (particle_j.nutrient - particle_i.nutrient)*(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
 
 								++particle_j_ptr;
 							}
@@ -372,7 +372,7 @@ void Simulation::compute_density()
 									continue;
 								}
 
-								particle_i.density += c::particleMass*W_poly6(r_sq, h_sq, c::H);
+								particle_i.density += particle_j.mass*W_poly6(r_sq, h_sq, c::H);
 
 								++particle_j_ptr;
 							}
@@ -382,8 +382,8 @@ void Simulation::compute_density()
 				}
 
 				// compute pressure
-				particle_i.pressure = c::gasStiffness * (pow(particle_i.density / c::restDensity, 7) - 1.0f);// Tait equation
-				//particle_i.pressure = c::gasStiffness * (particle_i.density - c::restDensity);
+				particle_i.pressure = c::gasStiffness * (pow(particle_i.density / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation
+				//particle_i.pressure = c::gasStiffness * (particle_i.density - particle_i.fluid_rest_density);
 
 				++particle_i_ptr;
 			}
@@ -450,8 +450,8 @@ void Simulation::compute_forces()
 								}
 
 								glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-								colorFieldGrad += c::particleMass*gradW_poly / particle_j.density;
-								colorFieldLap += c::particleMass*LapW_poly6(r, c::H) / particle_j.density;
+								colorFieldGrad += particle_j.mass*gradW_poly / particle_j.density;
+								colorFieldLap += particle_j.mass*LapW_poly6(r, c::H) / particle_j.density;
 
 								if (particle_i.id == particle_j.id)
 								{
@@ -459,13 +459,13 @@ void Simulation::compute_forces()
 									continue;
 								}
 
-								//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*c::particleMass / particle_i.density;
+								//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*particle_j.mass / particle_i.density;
 
-								viscosityF += 2.0f * c::particleMass / (particle_j.density + particle_i.density) * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
+								viscosityF += (particle_i.fluid_viscosity + particle_j.fluid_viscosity) * particle_j.mass / (particle_j.density + particle_i.density) * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
 
-								//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*c::particleMass)*GradW_spiky(r, c::H)*rVec;
+								//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*particle_j.mass)*GradW_spiky(r, c::H)*rVec;
 
-								pressureF += c::particleMass*(particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
+								pressureF += particle_j.mass*(particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
 
 								++particle_j_ptr;
 							}
@@ -483,7 +483,7 @@ void Simulation::compute_forces()
 					particle_i.at_surface = false;
 
 				pressureF *= -particle_i.density;
-				viscosityF *= c::viscosity;// *particle_i.density;
+				//viscosityF *= particle_i.density;
 				externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
 
 				totalF = pressureF + viscosityF + surfacetensionF + externalF;
@@ -577,14 +577,14 @@ void Simulation::advance()
 			//p.eval_velocity = eval_velocity;
 			p.velocity = new_velocity;
 
-			potential_force += p.position * glm::abs(p.acc);
-			kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f));
+			potential_force += p.position * glm::abs(p.acc) * p.mass;
+			kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f)) * p.mass;
 		}
 	}
 	
 	iteration_count++;
 	sim_time += dt;
-	mechanical_energy = 0.5f*c::particleMass*glm::length(kinetic_force) + c::particleMass*glm::length(potential_force);
+	mechanical_energy = 0.5f*glm::length(kinetic_force) + glm::length(potential_force);
 	//auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
 	//if(iteration_count % 5u == 0)
 	//	energy_stats.push_back(std::make_pair(sim_time, static_cast<float>(iteration_count) / static_cast<float>(d.count())));

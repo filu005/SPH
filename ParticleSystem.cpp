@@ -252,7 +252,7 @@ GLfloat ParticleSystem::compute_particle_color(Particle const & p)
 
 void ParticleSystem::add_particle(Particle p)
 {
-	p.add_nutrient(RANDOM(0.2f, 2.5f));
+	p.add_nutrient(RANDOM(2.4f, 2.5f));
 	particles.push_back(p);
 	model_matrices.push_back(glm::mat4());
 	bin_idx.push_back(0.0f);

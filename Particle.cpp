@@ -13,7 +13,13 @@ Particle::Particle(const glm::vec3 pos, const glm::vec3 velo) : Particle(pos, ve
 }
 
 Particle::Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_viscosity, float particle_mass) :
-	position(pos), velocity(velo), nutrient(0.0f), density(998.29f), fluid_viscosity(fluid_viscosity), mass(particle_mass), color_field_gradient_magnitude(0.0f), id(no_particles)
+	Particle(pos, velo, c::restDensity, c::viscosity, c::particleMass)
+{
+	++no_particles;
+}
+
+Particle::Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_rest_density, float fluid_viscosity, float particle_mass) :
+	position(pos), velocity(velo), nutrient(0.0f), density(998.29f), fluid_rest_density(fluid_rest_density), fluid_viscosity(fluid_viscosity), mass(particle_mass), color_field_gradient_magnitude(0.0f), id(no_particles)
 {
 	++no_particles;
 }
