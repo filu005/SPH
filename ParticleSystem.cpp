@@ -250,9 +250,8 @@ GLfloat ParticleSystem::compute_particle_color(Particle const & p)
 	return p.nutrient;// / average;// * 1.5f
 }
 
-void ParticleSystem::add_particle(glm::vec3 const position, glm::vec3 const velocity)
+void ParticleSystem::add_particle(Particle p)
 {
-	Particle p(position, velocity);
 	p.add_nutrient(RANDOM(0.2f, 2.5f));
 	particles.push_back(p);
 	model_matrices.push_back(glm::mat4());

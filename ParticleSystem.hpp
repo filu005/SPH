@@ -8,6 +8,7 @@
 
 #include "SphereModel.hpp"
 #include "Particle.hpp"
+#include "Emitters.hpp"
 #include "Paintable.hpp"
 
 
@@ -44,7 +45,7 @@ public:
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
 	GLfloat compute_particle_color(Particle const & p);
-	void add_particle(glm::vec3 const position, glm::vec3 const velocity);
+	void add_particle(Particle p);
 
 	/**
 	 * Sorts particles by a cell (bin) index. cell is an elementary part

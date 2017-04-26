@@ -8,10 +8,16 @@ struct Particle
 {
 	Particle();
 	Particle(const glm::vec3 pos, const glm::vec3 velo);
+	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_viscosity, float particle_mass);
 
 	void add_nutrient(float nut)
 	{
 		nutrient += nut;
+	}
+
+	void set_fluid_viscosity(float visc)
+	{
+		fluid_viscosity = visc;
 	}
 
 	glm::vec3 position;
@@ -24,6 +30,8 @@ struct Particle
 	float new_nutrient;
 	float density;
 	float pressure;
+	float fluid_viscosity;
+	float mass;
 	float color_field_gradient_magnitude;
 	bool at_surface;
 
