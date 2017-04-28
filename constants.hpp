@@ -8,10 +8,10 @@ namespace c
 
 	// kernel radius (promien odciecia)
 	const float H                = 0.03125f;//def = 0.03125f
-	const float gasStiffness     = 4.5f;// incompressibility can only be obtained as k -> infinity.
-	const float restDensity      = 100.0f;//115.f
-	const float particleMass     = 0.01f;
-	const float viscosity        = 1.5f;//0.005f; def = 1.5f
+	const float gasStiffness     = 1000.0f;// incompressibility can only be obtained as k -> infinity.
+	const float restDensity      = 500.0f;//115.f
+	const float particleMass     = 0.0031f;
+	const float viscosity        = 10.5f;//0.005f; def = 1.5f
 	const float surfaceTension   = 0.45f;
 	const float interfaceTension = 0.15f;
 	const float surfaceThreshold = 0.00001f;

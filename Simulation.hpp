@@ -61,6 +61,7 @@ private:
 	void emit_particles();
 	void compute_nutrient_concentration();
 	void compute_density();
+	void compute_interface_factor();
 	void compute_forces();
 	void advance();
 	void resolve_collisions();

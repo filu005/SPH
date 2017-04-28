@@ -1,4 +1,6 @@
 #include "Simulation.hpp"
+#include <iostream>
+#include "glm/gtx/string_cast.hpp"
 
 
 Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
@@ -302,9 +304,9 @@ void Simulation::compute_nutrient_concentration()
 
 	auto & particles = particle_system.particles;
 
-	//#pragma omp parallel default(shared)
+	#pragma omp parallel default(shared)
 	{
-		//#pragma omp for schedule(static)
+		#pragma omp for schedule(static)
 		//for (auto & p : particles)
 		for(int idx = 0; idx < particles.size(); ++idx)
 		{
@@ -382,10 +384,93 @@ void Simulation::compute_density()
 				}
 
 				// compute pressure
-				particle_i.pressure = c::gasStiffness * (pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation
+				particle_i.pressure = ((c::gasStiffness  * particle_i.fluid_rest_density) / 7.0f) * (pow( (particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation
 				//particle_i.pressure = c::gasStiffness * (particle_i.density - particle_i.fluid_rest_density);
 
 				++particle_i_ptr;
+			}
+		}
+	}
+}
+
+void Simulation::compute_interface_factor()
+{
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+	using namespace c;
+	const float h_sq = c::H*c::H;
+
+	auto & grid = this->grid.grid;
+
+	// go through all grids
+	#pragma omp parallel default(shared)
+	{
+		#pragma omp for schedule(static)
+		for(int idx = 0; idx < grid.size(); ++idx)
+		{
+			auto & i = grid[idx];
+			Particle * particle_i_ptr = i.first_particle;
+
+			// go through all particles in grid [i]
+			for(int ii = 0; ii < i.no_particles; ++ii)
+			{
+				Particle & particle_i = *particle_i_ptr;
+
+				glm::vec3 interface_color_field_grad(0.0f);
+				auto interface_color_field_lap = 0.0f;
+
+				// go through neighbours of particle [ii] in grid [i]
+				for(int z = -1; z <= 1; ++z)
+				{
+					for(int y = -1; y <= 1; ++y)
+					{
+						for(int x = -1; x <= 1; ++x)
+						{
+							glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							if(out_of_grid_scope(neighbour_cell_vector))
+								continue;
+
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+							if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+								continue;
+
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+
+								glm::vec3 rVec = particle_i.position - particle_j.position;
+								float r_sq = dot(rVec, rVec);
+								float r = sqrt(r_sq);
+								//float r = glm::length(rVec);
+
+								if(r > c::H)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+
+								// [SP08] - introduce smooth color field for interface-force
+								interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
+								interface_color_field_lap += particle_j.color_value*LapW_poly6(r, c::H) / particle_j.density;
+
+								if(particle_i.id == particle_j.id)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								++particle_j_ptr;
+							}
+						}
+					}
+				}
+
+				++particle_i_ptr;
+
 			}
 		}
 	}
@@ -469,7 +554,7 @@ void Simulation::compute_forces()
 
 								//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*particle_j.mass / particle_i.density;
 
-								viscosityF += (particle_i.fluid_viscosity + particle_j.fluid_viscosity) / particle_j.density * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
+								viscosityF += 0.5f * (particle_i.fluid_viscosity + particle_j.fluid_viscosity) / particle_j.density * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
 
 								//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*particle_j.mass)*GradW_spiky(r, c::H)*rVec;
 
@@ -493,14 +578,17 @@ void Simulation::compute_forces()
 				else
 					particle_i.at_surface = false;
 
-				//viscosityF /= particle_i.density;
+				viscosityF /= particle_i.density;
 
-				externalF = glm::vec3(0.0f, c::gravityAcc*particle_i.density, 0.0f);
+				externalF = glm::vec3(0.0f, c::gravityAcc * particle_i.mass, 0.0f);
 
-				totalF = pressureF + viscosityF + surfacetensionF +  externalF;//interfaceF
+				totalF = pressureF + viscosityF + surfacetensionF;//interfaceF
 
-				particle_i.acc = totalF / (particle_i.density );//* particle_i.mass
+				particle_i.acc = totalF / (particle_i.mass * particle_i.density);
 				particle_i.color_field_gradient_magnitude = colorFieldGradMag;
+
+				if(particle_i.id % 100 == 0)
+					std::cout << "particle_i.density: " << pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) << "\n";
 
 				++particle_i_ptr;
 
