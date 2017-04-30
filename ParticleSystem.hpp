@@ -47,6 +47,8 @@ public:
 	GLfloat compute_particle_color(Particle const & p);
 	void add_particle(Particle p);
 
+	void boost_mass(int no_particles, float boost_factor);
+
 	/**
 	 * Sorts particles by a cell (bin) index. cell is an elementary part
 	 * of Grid. Thanks to sorting the Grid can easily store an information about neighbours.

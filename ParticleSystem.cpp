@@ -266,6 +266,20 @@ void ParticleSystem::add_particle(Particle p)
 	//setup_buffers();
 }
 
+void ParticleSystem::boost_mass(int no_particles, float boost_factor)
+{
+	if(no_particles > c::N)
+		return;
+
+	for(int i = 0; i < no_particles; ++i)
+	{
+		auto & p = particles[i];
+		p.fluid_rest_density *= 1.0f / boost_factor;
+		p.mass *= boost_factor;
+		p.add_nutrient(4.0f);
+	}
+}
+
 void ParticleSystem::move_particles_around(float dt)
 {
 	//RANDOM(-0.001f, 0.001f);

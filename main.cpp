@@ -105,6 +105,8 @@ int main(int argc, char* argv[])
 void do_movement(GLfloat dt)
 {
 	Camera& camera = app->camera;
+	ParticleSystem & ps = app->get_particle_system();
+
 	// Camera controls
 	if(keys[GLFW_KEY_W])
 		camera.ProcessKeyboard(FORWARD, dt);
@@ -114,6 +116,11 @@ void do_movement(GLfloat dt)
 		camera.ProcessKeyboard(LEFT, dt);
 	if(keys[GLFW_KEY_D])
 		camera.ProcessKeyboard(RIGHT, dt);
+	if(keys[GLFW_KEY_P])
+	{
+		ps.boost_mass(static_cast<int>(c::N * 0.5f), 1.25f);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 	if(keys[GLFW_KEY_EQUAL]) // +
 		app->box_editor.process_extrusion(c::extrusion_step);
 	if(keys[GLFW_KEY_MINUS]) // -

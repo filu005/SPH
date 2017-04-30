@@ -3,6 +3,7 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <functional>
 
 #include "ParticleSystem.hpp"
 #include "DistanceField.hpp"
@@ -61,7 +62,10 @@ private:
 	void emit_particles();
 	void compute_nutrient_concentration();
 	void compute_density();
+	template<typename Args, typename Func0, typename Func1, typename Func2>
+	void iterate_particles_traverse_neighbours(Func0 init_iparticle, Func1 computation_on_jparticles, Func2 computation_on_iparticle);
 	void compute_interface_factor();
+	void compute_forces_compact();
 	void compute_forces();
 	void advance();
 	void resolve_collisions();

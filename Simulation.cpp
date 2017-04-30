@@ -34,12 +34,14 @@ void Simulation::run(float dt)
 	particle_system.insert_sort_particles_by_indices();
 	bin_particles_in_grid();
 
-	compute_density();
+	//compute_density();
+	compute_interface_factor();
 
 	//for(int i = 0; i < 5; ++i)
 		compute_nutrient_concentration();
 
-	compute_forces();
+	//compute_forces();
+	compute_forces_compact();
 	resolve_collisions();
 	advance();
 
@@ -203,13 +205,13 @@ void Simulation::emit_particles()
 		float const placement_mod = 0.4f;
 		auto & particles = particle_system.particles;
 
-		//for (float y = c::ymin + 2.0f*c::H; y < c::ymax*placement_mod; y += c::H*additional_margin)
-		//	for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
-		//		for (float x = c::xmin*placement_mod; x < c::xmax*placement_mod; x += c::H*additional_margin)
 
-		for(float x = c::xmin*placement_mod - 0.25f; x < c::xmax*placement_mod; x += c::H*additional_margin)
-			for(float y = c::ymin*placement_mod - 0.25f; y < c::ymax*placement_mod; y += c::H*additional_margin)
-				for(float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		//for(float x = c::xmin*placement_mod - 0.25f; x < c::xmax*placement_mod; x += c::H*additional_margin)
+		//	for(float y = c::ymin*placement_mod - 0.25f; y < c::ymax*placement_mod; y += c::H*additional_margin)
+		//		for(float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		for (float y = c::ymin + 2.0f*c::H; y < c::ymax - 2.0f*c::H; y += c::H*additional_margin)
+			for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+				for (float x = c::xmin*placement_mod - 0.1f; x < c::xmax*placement_mod + 0.1f; x += c::H*additional_margin)
 				{
 					Particle& tp = particles[particle_count];
 					tp.position = glm::vec3(x, y, z);
@@ -384,7 +386,7 @@ void Simulation::compute_density()
 				}
 
 				// compute pressure
-				particle_i.pressure = ((c::gasStiffness  * particle_i.fluid_rest_density) / 7.0f) * (pow( (particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation
+				particle_i.pressure = c::gasStiffness * (pow( (particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation
 				//particle_i.pressure = c::gasStiffness * (particle_i.density - particle_i.fluid_rest_density);
 
 				++particle_i_ptr;
@@ -393,12 +395,12 @@ void Simulation::compute_density()
 	}
 }
 
-void Simulation::compute_interface_factor()
+template<typename Args, typename Func0, typename Func1, typename Func2>
+void Simulation::iterate_particles_traverse_neighbours(Func0 init_iparticle, Func1 computation_on_jparticles, Func2 computation_on_iparticle)
 {
 	using particle_system::get_cell_index;
 	using particle_system::out_of_grid_scope;
 	using namespace c;
-	const float h_sq = c::H*c::H;
 
 	auto & grid = this->grid.grid;
 
@@ -406,6 +408,7 @@ void Simulation::compute_interface_factor()
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
+		//for (auto & i : grid)
 		for(int idx = 0; idx < grid.size(); ++idx)
 		{
 			auto & i = grid[idx];
@@ -415,9 +418,8 @@ void Simulation::compute_interface_factor()
 			for(int ii = 0; ii < i.no_particles; ++ii)
 			{
 				Particle & particle_i = *particle_i_ptr;
-
-				glm::vec3 interface_color_field_grad(0.0f);
-				auto interface_color_field_lap = 0.0f;
+				Args args;
+				init_iparticle(particle_i);
 
 				// go through neighbours of particle [ii] in grid [i]
 				for(int z = -1; z <= 1; ++z)
@@ -440,40 +442,211 @@ void Simulation::compute_interface_factor()
 							{
 								Particle& particle_j = *particle_j_ptr;
 
-								glm::vec3 rVec = particle_i.position - particle_j.position;
-								float r_sq = dot(rVec, rVec);
-								float r = sqrt(r_sq);
-								//float r = glm::length(rVec);
-
-								if(r > c::H)
-								{
-									++particle_j_ptr;
-									continue;
-								}
-
-								glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-
-								// [SP08] - introduce smooth color field for interface-force
-								interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
-								interface_color_field_lap += particle_j.color_value*LapW_poly6(r, c::H) / particle_j.density;
-
-								if(particle_i.id == particle_j.id)
-								{
-									++particle_j_ptr;
-									continue;
-								}
+								computation_on_jparticles(particle_i, particle_j, args);
 
 								++particle_j_ptr;
 							}
+
 						}
 					}
 				}
 
-				++particle_i_ptr;
+				computation_on_iparticle(particle_i, args);
 
+				++particle_i_ptr;
 			}
 		}
 	}
+}
+
+
+void Simulation::compute_interface_factor()
+{
+	struct Args1
+	{
+		Args1() : h_sq(c::H*c::H) { }
+
+		float const h_sq;
+	};
+
+	static auto init_iparticle = [](Particle & particle_i)
+	{
+		particle_i.density = 0.0f;
+	};
+
+	static auto computation_on_jparticles = [&](Particle & particle_i, Particle & particle_j, Args1 & args)
+	{
+		glm::vec3 rVec = particle_i.position - particle_j.position;
+		float r_sq = dot(rVec, rVec);
+		float r = sqrt(r_sq);
+
+		if(r > c::H)
+			return;
+
+		particle_i.density += W_poly6(r_sq, args.h_sq, c::H);
+	};
+
+	static auto computation_on_iparticles = [](Particle & particle_i, Args1 & args)
+	{
+		particle_i.pressure = c::gasStiffness * (pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation		
+	};
+
+	iterate_particles_traverse_neighbours<Args1>(init_iparticle, computation_on_jparticles, computation_on_iparticles);
+
+	//using particle_system::get_cell_index;
+	//using particle_system::out_of_grid_scope;
+	//using namespace c;
+	//const float h_sq = c::H*c::H;
+
+	//auto & grid = this->grid.grid;
+
+	//// go through all grids
+	//#pragma omp parallel default(shared)
+	//{
+	//	#pragma omp for schedule(static)
+	//	for(int idx = 0; idx < grid.size(); ++idx)
+	//	{
+	//		auto & i = grid[idx];
+	//		Particle * particle_i_ptr = i.first_particle;
+
+	//		// go through all particles in grid [i]
+	//		for(int ii = 0; ii < i.no_particles; ++ii)
+	//		{
+	//			Particle & particle_i = *particle_i_ptr;
+
+	//			glm::vec3 interface_color_field_grad(0.0f);
+	//			auto interface_color_field_lap = 0.0f;
+
+	//			// go through neighbours of particle [ii] in grid [i]
+	//			for(int z = -1; z <= 1; ++z)
+	//			{
+	//				for(int y = -1; y <= 1; ++y)
+	//				{
+	//					for(int x = -1; x <= 1; ++x)
+	//					{
+	//						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+	//						if(out_of_grid_scope(neighbour_cell_vector))
+	//							continue;
+
+	//						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+	//						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+	//							continue;
+
+	//						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+	//						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+	//						{
+	//							Particle& particle_j = *particle_j_ptr;
+
+	//							glm::vec3 rVec = particle_i.position - particle_j.position;
+	//							float r_sq = dot(rVec, rVec);
+	//							float r = sqrt(r_sq);
+	//							//float r = glm::length(rVec);
+
+	//							if(r > c::H)
+	//							{
+	//								++particle_j_ptr;
+	//								continue;
+	//							}
+
+	//							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+
+	//							// [SP08] - introduce smooth color field for interface-force
+	//							interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
+	//							interface_color_field_lap += particle_j.color_value*LapW_poly6(r, c::H) / particle_j.density;
+
+	//							if(particle_i.id == particle_j.id)
+	//							{
+	//								++particle_j_ptr;
+	//								continue;
+	//							}
+
+	//							++particle_j_ptr;
+	//						}
+	//					}
+	//				}
+	//			}
+
+	//			++particle_i_ptr;
+
+	//		}
+	//	}
+	//}
+}
+
+void Simulation::compute_forces_compact()
+{
+	struct Args1
+	{
+		Args1() : h_sq(c::H*c::H), totalF(0.0f), pressureF(0.0f), viscosityF(0.0f), externalF(0.0f),
+			surfacetensionF(0.0f), interfaceF(0.0f), colorFieldGrad(0.0f), interface_color_field_grad(0.0f),
+			interface_color_field_lap(0.0f), colorFieldLap(0.0f)
+		{ }
+
+		float const h_sq;
+		glm::vec3 totalF, pressureF, viscosityF, externalF, surfacetensionF, interfaceF, colorFieldGrad, interface_color_field_grad;
+		float interface_color_field_lap;
+		float colorFieldLap;
+	};
+
+	static auto init_iparticle = [&](Particle & particle_i)
+	{
+		
+	};
+	static auto computation_on_jparticles = [&](Particle & particle_i, Particle & particle_j, Args1 & args)
+	{
+		glm::vec3 rVec = particle_i.position - particle_j.position;
+		float r_sq = dot(rVec, rVec);
+		float r = sqrt(r_sq);
+
+		if(r > c::H)
+			return;
+
+		glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+		args.colorFieldGrad += gradW_poly / particle_j.density;
+		args.colorFieldLap += LapW_poly6(r, c::H) / particle_j.density;
+
+		 //[SP08] - introduce smooth color field for interface-force
+		args.interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
+		args.interface_color_field_lap += particle_j.color_value*LapW_poly6(r, c::H) / particle_j.density;
+
+		if(particle_i.id == particle_j.id)
+			return;
+
+		//viscosityF += (particle_j.velocity - particle_i.velocity)*LapW_viscosity(r, c::H)*particle_j.mass / particle_i.density;
+
+		args.viscosityF += 0.5f * (particle_i.fluid_viscosity + particle_j.fluid_viscosity) / particle_j.density * (particle_i.velocity - particle_j.velocity) * ((rVec * Grad_BicubicSpline(rVec, c::H)) / (rVec * rVec + 0.01f*pow(c::H, 2)));
+
+		//pressureF -= (0.5f*(particle_j.pressure + particle_i.pressure) / (particle_j.density)*particle_j.mass)*GradW_spiky(r, c::H)*rVec;
+
+		args.pressureF -= (particle_j.pressure / pow(particle_j.density, 2) + particle_i.pressure / pow(particle_i.density, 2))*GradW_spiky(r, c::H)*rVec;
+	};
+	static auto computation_on_iparticles = [&](Particle & particle_i, Args1 & args)
+	{
+		float interface_color_field_grad_mag = glm::length(args.interface_color_field_grad);
+		args.interfaceF = -c::interfaceTension*args.interface_color_field_lap*args.interface_color_field_grad / interface_color_field_grad_mag;
+
+		float colorFieldGradMag = glm::length(args.colorFieldGrad);
+		if(colorFieldGradMag > c::surfaceThreshold)
+			args.surfacetensionF = -c::surfaceTension * args.colorFieldLap * args.colorFieldGrad / colorFieldGradMag;// -sigma*nabla^{2}[c_s]*(nabla[c_s]/|nabla[c_s]|)
+
+		if(colorFieldGradMag > c::surfaceParticleGradientThreshold)
+			particle_i.at_surface = false;
+		else
+			particle_i.at_surface = false;
+
+		args.viscosityF /= particle_i.density;
+		args.surfacetensionF /= particle_i.density;
+
+		args.externalF = glm::vec3(0.0f, c::gravityAcc * particle_i.mass, 0.0f);
+
+		args.totalF = args.pressureF + args.viscosityF + args.surfacetensionF + args.externalF;
+
+		particle_i.acc = args.totalF / particle_i.mass;
+		particle_i.color_field_gradient_magnitude = colorFieldGradMag;
+	};
+
+	iterate_particles_traverse_neighbours<Args1>(init_iparticle, computation_on_jparticles, computation_on_iparticles);
 }
 
 void Simulation::compute_forces()
@@ -539,8 +712,8 @@ void Simulation::compute_forces()
 								}
 
 								glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-								colorFieldGrad += particle_j.mass*gradW_poly / particle_j.density;
-								colorFieldLap += particle_j.mass*LapW_poly6(r, c::H) / particle_j.density;
+								colorFieldGrad += gradW_poly / particle_j.density;
+								colorFieldLap += LapW_poly6(r, c::H) / particle_j.density;
 
 								// [SP08] - introduce smooth color field for interface-force
 								interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
@@ -579,16 +752,14 @@ void Simulation::compute_forces()
 					particle_i.at_surface = false;
 
 				viscosityF /= particle_i.density;
+				surfacetensionF /= particle_i.density;
 
 				externalF = glm::vec3(0.0f, c::gravityAcc * particle_i.mass, 0.0f);
 
-				totalF = pressureF + viscosityF + surfacetensionF;//interfaceF
+				totalF = pressureF + viscosityF + surfacetensionF + externalF;
 
-				particle_i.acc = totalF / (particle_i.mass * particle_i.density);
+				particle_i.acc = totalF / particle_i.mass;
 				particle_i.color_field_gradient_magnitude = colorFieldGradMag;
-
-				if(particle_i.id % 100 == 0)
-					std::cout << "particle_i.density: " << pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) << "\n";
 
 				++particle_i_ptr;
 

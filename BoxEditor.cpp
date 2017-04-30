@@ -60,7 +60,7 @@ void BoxEditor::process_mouse_click(float xpos, float ypos)
 		auto & emtt = *emitters_ref;
 		// add emitter; place emitter in place
 		//ps.add_particle(Particle(intersection_point, glm::vec3(0.0f)));
-		emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector, c::restDensity * 0.5f, c::viscosity, c::particleMass));
+		emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector, c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 		// reset extrusion
 		_extrusion = 0.02f;
 		// switch editor to free mode

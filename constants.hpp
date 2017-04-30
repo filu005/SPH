@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 //simulation constans
 namespace c
@@ -8,11 +8,11 @@ namespace c
 
 	// kernel radius (promien odciecia)
 	const float H                = 0.03125f;//def = 0.03125f
-	const float gasStiffness     = 1000.0f;// incompressibility can only be obtained as k -> infinity.
-	const float restDensity      = 500.0f;//115.f
-	const float particleMass     = 0.0031f;
-	const float viscosity        = 10.5f;//0.005f; def = 1.5f
-	const float surfaceTension   = 0.45f;
+	const float gasStiffness     = 10.0f;// incompressibility can only be obtained as k -> infinity.
+	const float restDensity      = 200.0f;//115.f
+	const float particleMass     = 0.0018f;// m = ρ*(0.66*H)^3
+	const float viscosity        = 2.5f;//0.005f; def = 1.5f
+	const float surfaceTension   = 0.25f;
 	const float interfaceTension = 0.15f;
 	const float surfaceThreshold = 0.00001f;
 	const float gravityAcc       = -9.80665f;
@@ -36,7 +36,7 @@ namespace c
 
 /**
  * grid constants:
- * N			init (not total!) number of particles
+ * N			init (not total! see ParticleSystem::particle_count) number of particles
  * [K, L, M]	count of bins in X, Y, Z dimensions; defines number of grid bins.
  *				set only as power of 2 (other values causes round-off errors)
  * [xmin, xmax]	dimensions of neighbour grid (in world coordinates).
@@ -45,13 +45,13 @@ namespace c
  */
 namespace c
 {
-	const int N = 5000; // Simulation::particle count; def = 8000
-	const int K = 32, L = 32, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
+	const int N = 2600; // Simulation::particle count; def = 8000
+	const int K = 16, L = 16, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
-	//const float xmin = -0.25f, ymin = -0.125f, zmin = -0.25f;
-	//const float xmax = 0.25f, ymax = 0.125f, zmax = 0.25f;
-	const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
-	const float xmax = 0.5f, ymax = 0.5f, zmax = 0.25f;
+	const float xmin = -0.25f, ymin = -0.25f, zmin = -0.25f;
+	const float xmax = 0.25f, ymax = 0.25f, zmax = 0.25f;
+	//const float xmin = -0.5f, ymin = -0.5f, zmin = -0.25f;
+	//const float xmax = 0.5f, ymax = 0.5f, zmax = 0.25f;
 	const float dx = (xmax - xmin) / static_cast<float>(K);// tez tylko potegi 2, np. 2^(-6)=1/64
 	const float dy = (ymax - ymin) / static_cast<float>(L);
 	const float dz = (zmax - zmin) / static_cast<float>(M);

@@ -17,6 +17,8 @@ public:
 	void paint();
 	void tick(float dt);
 
+	ParticleSystem & get_particle_system() { return _sim.particle_system; }
+
 	BoxEditor box_editor;
 	Camera camera;
 
