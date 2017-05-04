@@ -69,6 +69,7 @@ private:
 	void compute_forces();
 	void advance();
 	void resolve_collisions();
+	void multiply_particles();
 
 	float W_poly6(float r_sq, float h_sq, float h);
 	glm::vec3 GradW_poly6(float r, float h);

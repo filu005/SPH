@@ -34,17 +34,19 @@ void Simulation::run(float dt)
 	particle_system.insert_sort_particles_by_indices();
 	bin_particles_in_grid();
 
+	multiply_particles();
 	//compute_density();
 	compute_interface_factor();
 
 	//for(int i = 0; i < 5; ++i)
-		compute_nutrient_concentration();
+	compute_nutrient_concentration();
 
 	//compute_forces();
 	compute_forces_compact();
 	resolve_collisions();
+	
 	advance();
-
+	
 	// tutaj bo Painter::paint() jest const
 	// do wizualizacji:
 	// za pomoca siatki generowanej przez MC
@@ -209,6 +211,7 @@ void Simulation::emit_particles()
 		//for(float x = c::xmin*placement_mod - 0.25f; x < c::xmax*placement_mod; x += c::H*additional_margin)
 		//	for(float y = c::ymin*placement_mod - 0.25f; y < c::ymax*placement_mod; y += c::H*additional_margin)
 		//		for(float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
+		
 		for (float y = c::ymin + 2.0f*c::H; y < c::ymax - 2.0f*c::H; y += c::H*additional_margin)
 			for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
 				for (float x = c::xmin*placement_mod - 0.1f; x < c::xmax*placement_mod + 0.1f; x += c::H*additional_margin)
@@ -274,6 +277,8 @@ void Simulation::compute_nutrient_concentration()
 							{
 								Particle& particle_j = *particle_j_ptr;
 
+								if (particle_i.type==0 && particle_j.type == 1) { continue; } // if i is healthy particle and j cell is tumor -> don't take oxygen from it
+
 								glm::vec3 rVec = particle_i.position - particle_j.position;
 								float r_sq = dot(rVec, rVec);
 								float r = sqrt(r_sq);
@@ -283,22 +288,24 @@ void Simulation::compute_nutrient_concentration()
 									++particle_j_ptr;
 									continue;
 								}
-
-								nutrient += (particle_j.nutrient - particle_i.nutrient)*(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
-
+								nutrient += fabs(particle_j.nutrient - particle_i.nutrient) *(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
 								++particle_j_ptr;
 							}
 
 						}
 					}
 				}
-
-				nutrient *= c::nutrient_diffusion;
-				nutrient -= c::nutrient_consumption_rate;
+				// different constants of diffusion for different types of cells 				
+				nutrient *= c::nutrient_diffusion_tumor;
+				nutrient -= c::nutrient_consumption_rate_tumor;
+				
+				//} else { 
+				//	nutrient *= c::nutrient_diffusion_healthy;
+				//	nutrient -= c::nutrient_consumption_rate_healthy;
+				//} 
 
 				// compute nutrient concentration
 				particle_i.new_nutrient = nutrient;
-
 				++particle_i_ptr;
 			}
 		}
@@ -315,9 +322,32 @@ void Simulation::compute_nutrient_concentration()
 			auto & p = particles[idx];
 
 			p.nutrient = p.nutrient + p.new_nutrient*c::dt*0.2f;
-
 		}
 	}
+}
+
+void Simulation::multiply_particles() {
+auto & particles = particle_system.particles;
+glm::vec3 pos_to_multiply;
+bool flag = false;
+#pragma omp parallel default(shared)
+{
+	#pragma omp for schedule(static)
+	for (int idx = 0; idx < particles.size(); ++idx)
+	{
+		auto & p = particles[idx];
+		if (p.type == 1 && p.nutrient > c::nutrient_threshold) {
+			std::cout << p.nutrient << std::endl;
+			p.nutrient = RANDOM(0.35f, 0.55f);
+			flag = true;
+			pos_to_multiply = p.position;
+		}
+	}
+}
+if (flag){
+	Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, RANDOM(0.35f, 0.55f), c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f);
+	particle_system.add_particle(pt);
+}
 }
 
 void Simulation::compute_density()
@@ -460,7 +490,7 @@ void Simulation::iterate_particles_traverse_neighbours(Func0 init_iparticle, Fun
 }
 
 
-void Simulation::compute_interface_factor()
+void Simulation:: compute_interface_factor()
 {
 	struct Args1
 	{

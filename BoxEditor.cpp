@@ -57,10 +57,11 @@ void BoxEditor::process_mouse_click(float xpos, float ypos)
 	else if(editor_state == State::PLACING)
 	{
 		auto & ps = *particle_system_ref;
-		auto & emtt = *emitters_ref;
+		//auto & emtt = *emitters_ref;
 		// add emitter; place emitter in place
-		//ps.add_particle(Particle(intersection_point, glm::vec3(0.0f)));
-		emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector, c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+		Particle particle = Particle(intersection_point, new_emitter_velocity_vector, 1, 0.0f, c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f);
+		ps.add_particle(particle);  //type=1 -> adding tumor
+		//emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector, c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 		// reset extrusion
 		_extrusion = 0.02f;
 		// switch editor to free mode

@@ -4,6 +4,7 @@
 #include "Painter.hpp"
 #include "SphereModel.hpp"
 #include "ParticleSystem.hpp"
+#include <cmath>
 
 
 namespace particle_system
@@ -246,13 +247,14 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 GLfloat ParticleSystem::compute_particle_color(Particle const & p)
 {
 	static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
-
-	return p.nutrient;// / average;// * 1.5f
+	if (p.type == 0) { return 0; }
+	else { return 1; }
+	//return 1-p.nutrient;  //average;// * 1.5f
 }
 
 void ParticleSystem::add_particle(Particle p)
 {
-	p.add_nutrient(RANDOM(2.4f, 2.5f));
+	//p.add_nutrient(RANDOM(2.4f, 2.5f));
 	particles.push_back(p);
 	model_matrices.push_back(glm::mat4());
 	bin_idx.push_back(0.0f);
@@ -263,7 +265,7 @@ void ParticleSystem::add_particle(Particle p)
 
 	// resize buffers
 	reset_buffers();
-	//setup_buffers();
+	// setup_buffers();
 }
 
 void ParticleSystem::boost_mass(int no_particles, float boost_factor)

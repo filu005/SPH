@@ -111,6 +111,10 @@ public:
 			this->Zoom = 45.0f;
 	}
 
+	void StaticCamera() {
+		this->MouseSensitivity = 0;
+	}
+
 	// http://stackoverflow.com/questions/29997209/opengl-c-mouse-ray-picking-glmunproject
 	glm::vec3 create_ray(float xpos, float ypos) const
 	{

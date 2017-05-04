@@ -8,10 +8,10 @@ namespace c
 
 	// kernel radius (promien odciecia)
 	const float H                = 0.03125f;//def = 0.03125f
-	const float gasStiffness     = 10.0f;// incompressibility can only be obtained as k -> infinity.
-	const float restDensity      = 200.0f;//115.f
-	const float particleMass     = 0.0018f;// m = ρ*(0.66*H)^3
-	const float viscosity        = 2.5f;//0.005f; def = 1.5f
+	const float gasStiffness     = 20.0f;// incompressibility can only be obtained as k -> infinity.   [N*m/kg]
+	const float restDensity      = 200.0f;//115.f   [kg/m^3]
+	const float particleMass     = 0.0018f;// m = ρ*(0.66*H)^3   [kg]
+	const float viscosity        = 20.0f;//0.005f; def = 1.5f  // [N*s / m^2]
 	const float surfaceTension   = 0.25f;
 	const float interfaceTension = 0.15f;
 	const float surfaceThreshold = 0.00001f;
@@ -80,8 +80,18 @@ namespace c
 	auto constexpr extrusion_step = 0.025f;
 }
 
+// diffusion constants 
 namespace c
 {
-	auto constexpr nutrient_diffusion = 0.0f;
-	auto constexpr nutrient_consumption_rate = 0.0f;
+	//auto constexpr nutrient_diffusion_tumor = 1.0f;   // D_t
+	//auto constexpr nutrient_diffusion_healthy = 0.7f * nutrient_diffusion_tumor;   // D_h
+	//auto constexpr nutrient_consumption_rate_tumor = 1.0f;  // n(x,t)
+	//auto constexpr nutrient_consumption_rate_healthy = 0.7f * nutrient_consumption_rate_tumor;
+	//auto constexpr nutrient_threshold = 0.5f;
+
+	auto constexpr nutrient_diffusion_tumor = 0.5f;   // D_t
+	auto constexpr nutrient_diffusion_healthy = 0.1f;   // D_h
+	auto constexpr nutrient_consumption_rate_tumor = 0.01f;  // n(x,t)
+	auto constexpr nutrient_consumption_rate_healthy = 0.0f;
+	auto constexpr nutrient_threshold = 0.9f;
 }
