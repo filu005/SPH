@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 
 #include "ParticleSystem.hpp"
 #include "Emitters.hpp"
@@ -21,8 +22,7 @@ void Emitters::emit()
 			auto const mod = [&] { return emitter.emit_radius * (1.0f - 2.0f * static_cast<float>(static_cast<float>(rand()) / RAND_MAX)); };
 
 			auto new_position = emitter.position + glm::vec3(mod(), mod(), mod());
-			particle_system_ref->add_particle(Particle(new_position, emitter.emit_velocity, emitter.fluid_rest_density, emitter.fluid_viscosity, emitter.particle_mass, emitter.color_value));
-
+			particle_system_ref->add_particle(Particle(new_position, emitter.emit_velocity, emitter.type, emitter.nutrient, emitter.density, emitter.fluid_rest_density, emitter.fluid_viscosity, emitter.particle_mass, emitter.color_value));
 			emitter.last_emission_time = 0.0f;
 		}
 	}

@@ -35,6 +35,8 @@ void Simulation::run(float dt)
 	bin_particles_in_grid();
 
 	multiply_particles();
+
+	
 	//compute_density();
 	compute_interface_factor();
 
@@ -277,7 +279,10 @@ void Simulation::compute_nutrient_concentration()
 							{
 								Particle& particle_j = *particle_j_ptr;
 
-								if (particle_i.type==0 && particle_j.type == 1) { continue; } // if i is healthy particle and j cell is tumor -> don't take oxygen from it
+								if (particle_i.type==0 && particle_j.type == 1) { // if i is healthy particle and j cell is tumor -> don't take oxygen from it
+									++particle_j_ptr; 
+									continue; 
+								}
 
 								glm::vec3 rVec = particle_i.position - particle_j.position;
 								float r_sq = dot(rVec, rVec);
@@ -327,27 +332,28 @@ void Simulation::compute_nutrient_concentration()
 }
 
 void Simulation::multiply_particles() {
-auto & particles = particle_system.particles;
-glm::vec3 pos_to_multiply;
-bool flag = false;
-#pragma omp parallel default(shared)
-{
-	#pragma omp for schedule(static)
-	for (int idx = 0; idx < particles.size(); ++idx)
+	auto & particles = particle_system.particles;
+	glm::vec3 pos_to_multiply;
+	bool flag = false;
+
+	#pragma omp parallel default(shared)
 	{
-		auto & p = particles[idx];
-		if (p.type == 1 && p.nutrient > c::nutrient_threshold) {
-			std::cout << p.nutrient << std::endl;
-			p.nutrient = RANDOM(0.35f, 0.55f);
-			flag = true;
-			pos_to_multiply = p.position;
+		#pragma omp for schedule(static)
+		for (int idx = 0; idx < particles.size(); ++idx)
+		{
+			auto & p = particles[idx];
+			if (p.type == 1 && p.nutrient > c::nutrient_threshold) {
+				std::cout << p.nutrient << std::endl;
+				p.nutrient = RANDOM(0.1f, 0.2f);
+				flag = true;
+				pos_to_multiply = p.position;
+			}
 		}
 	}
-}
-if (flag){
-	Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, RANDOM(0.35f, 0.55f), c::restDensity * 0.8f, c::viscosity, c::particleMass * 1.25f);
-	particle_system.add_particle(pt);
-}
+	if (flag){
+		Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, RANDOM(0.1f, 0.2f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
+		particle_system.add_particle(pt);
+	}
 }
 
 void Simulation::compute_density()

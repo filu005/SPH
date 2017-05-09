@@ -95,7 +95,7 @@ void ParticleSystem::setup_buffers(void)
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		particle_color[index] = compute_particle_color(p);
-		surface_particles[index] = p.at_surface;
+		surface_particles[index] = p.type;
 		index++;
 	}
 
@@ -213,7 +213,7 @@ void ParticleSystem::update_buffers()
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		particle_color[index] = compute_particle_color(p);
-		surface_particles[index] = p.at_surface;
+		surface_particles[index] = p.type;
 		index++;
 	}
 
@@ -246,7 +246,7 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 
 GLfloat ParticleSystem::compute_particle_color(Particle const & p)
 {
-	static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
+	//static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
 	if (p.type == 0) { return 0; }
 	else { return 1; }
 	//return 1-p.nutrient;  //average;// * 1.5f

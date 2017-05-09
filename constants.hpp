@@ -89,9 +89,9 @@ namespace c
 	//auto constexpr nutrient_consumption_rate_healthy = 0.7f * nutrient_consumption_rate_tumor;
 	//auto constexpr nutrient_threshold = 0.5f;
 
-	auto constexpr nutrient_diffusion_tumor = 0.5f;   // D_t
-	auto constexpr nutrient_diffusion_healthy = 0.1f;   // D_h
-	auto constexpr nutrient_consumption_rate_tumor = 0.01f;  // n(x,t)
+	auto constexpr nutrient_diffusion_tumor = 0.001f;   // D_t
+	auto constexpr nutrient_diffusion_healthy = 0.01f;   // D_h
+	auto constexpr nutrient_consumption_rate_tumor = 0.1f;  // n(x,t)
 	auto constexpr nutrient_consumption_rate_healthy = 0.0f;
 	auto constexpr nutrient_threshold = 0.9f;
 }

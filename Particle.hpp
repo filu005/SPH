@@ -11,8 +11,7 @@ struct Particle
 	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_viscosity, float particle_mass);
 	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_rest_density, float fluid_viscosity, float particle_mass);
 	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, float fluid_rest_density, float fluid_viscosity, float particle_mass);
-	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value);
-	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, float nutrient, float fluid_rest_density, float fluid_viscosity, float particle_mass);
+	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, float density, float nutrient, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value);
 
 	void add_nutrient(float nut)
 	{

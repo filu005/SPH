@@ -13,12 +13,12 @@ class ParticleSystem;
  */
 struct Emitter
 {
-	Emitter(glm::vec3 pos, glm::vec3 vel, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value) :
-		position(pos), emit_velocity(vel), color_value(color_value), fluid_rest_density(fluid_rest_density), fluid_viscosity(fluid_viscosity), particle_mass(particle_mass), ttl(6.0f), last_emission_time(0.0f), delay(c::dt), emit_radius(0.5f * c::H)
+	Emitter(glm::vec3 pos, glm::vec3 vel, int type, float nutrient, float density, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value) :
+		position(pos), emit_velocity(vel), type(type), nutrient(nutrient), density(density), color_value(color_value), fluid_rest_density(fluid_rest_density), fluid_viscosity(fluid_viscosity), particle_mass(particle_mass), ttl(6.0f), last_emission_time(0.0f), delay(c::dt), emit_radius(0.5f * c::H)
 	{
 	}
 	Emitter(glm::vec3 pos, glm::vec3 vel, float fluid_rest_density, float fluid_viscosity, float particle_mass) :
-		Emitter(pos, vel, c::restDensity, fluid_viscosity, particle_mass, 0.5f) { }
+		Emitter(pos, vel, 1, 1.0f, 998.29f, c::restDensity, fluid_viscosity, particle_mass, 0.5f) { }
 	Emitter(glm::vec3 pos, glm::vec3 vel, float fluid_viscosity, float particle_mass) :
 		Emitter(pos, vel, c::restDensity, fluid_viscosity, particle_mass) { }
 	Emitter(glm::vec3 pos, glm::vec3 vel) : Emitter(pos, vel, c::viscosity, c::particleMass) { }
@@ -29,6 +29,9 @@ struct Emitter
 	float fluid_rest_density;
 	float fluid_viscosity;
 	float particle_mass;
+	int type;
+	float density;
+	float nutrient;
 	float ttl;
 	float last_emission_time;
 	float delay;

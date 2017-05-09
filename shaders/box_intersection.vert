@@ -1,7 +1,7 @@
 #version 330 core
 layout (location = 0) in vec3 position;
 
-out vec3 outColor;
+out vec4 outColor;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -11,5 +11,5 @@ void main()
 {
 	gl_PointSize = 5.0;
     gl_Position = projection * view * model * vec4(position, 1.0);
-    outColor = vec3(1.0, 0.0, 0.0);
+    outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
