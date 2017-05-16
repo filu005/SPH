@@ -42,6 +42,8 @@ and for rendering (DistanceField class; see 'Distance Field Generation' and 'GPU
 Painting objects (i.e. calling drawing functions) is constructed via a Visitor pattern. Every Object which is to be drawn, derives from `Drawable` class and it's reference is held in `Application::_paintables` vector.
 Then in every iteration a `Application::paint()` method is called which calls `paint()` method for every Object in that `_paintables` vector, which in turn (through the Object) calls `Painter::paint(Object &)` method.
 
+For additional information about code structure see [tutorial_pl](tutorial_pl.md) (in polish).
+
 ## References
 1. Matthias Müller, David Charypar, and Markus Gross.
 “Particle-Based Fluid Simulation for Interactive Applications”
