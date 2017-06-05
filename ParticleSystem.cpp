@@ -95,7 +95,7 @@ void ParticleSystem::setup_buffers(void)
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		particle_color[index] = compute_particle_color(p);
-		surface_particles[index] = p.type;
+		surface_particles[index] = p.at_surface;
 		index++;
 	}
 
@@ -213,7 +213,7 @@ void ParticleSystem::update_buffers()
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		particle_color[index] = compute_particle_color(p);
-		surface_particles[index] = p.type;
+		surface_particles[index] = p.at_surface;
 		index++;
 	}
 
@@ -244,11 +244,12 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 	return position_color_field_data;
 }
 
-GLfloat ParticleSystem::compute_particle_color(Particle const & p)
+GLint ParticleSystem::compute_particle_color(Particle const & p)
 {
 	//static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
 	if (p.type == 0) { return 0; }
-	else { return 1; }
+	else if (p.type == 1) { return 1; }
+	else { 	return 2;}
 	//return 1-p.nutrient;  //average;// * 1.5f
 }
 
@@ -262,6 +263,17 @@ void ParticleSystem::add_particle(Particle p)
 	surface_particles.push_back(0u);
 
 	++particle_count;
+
+	// resize buffers
+	reset_buffers();
+	// setup_buffers();
+}
+
+void ParticleSystem::delete_particle(int id)
+{
+	particles.erase(std::find_if(particles.begin(), particles.end(), [&](Particle& p) { return p.id == id; }));
+
+	--particle_count;
 
 	// resize buffers
 	reset_buffers();

@@ -18,7 +18,7 @@ namespace c
 	const float gravityAcc       = -9.80665f;
 
 	// for collisions with container (Box)
-	const float wall_stiffness = 50000.0f;// im mniejsza tym sciany bardziej 'faluja'
+	const float wall_stiffness = 5000.0f;// im mniejsza tym sciany bardziej 'faluja'
 	const float wall_damping = -100.0f;
 
 	// viewport dimensions
@@ -45,7 +45,7 @@ namespace c
  */
 namespace c
 {
-	const int N = 2600; // Simulation::particle count; def = 8000
+	const int N = 12000; // Simulation::particle count; def = 8000
 	const int K = 16, L = 16, M = 16;// tylko potegi 2 (bo powstaja niedokladnosci przy dzieleniu m.in. przy dx/dy/dz)
 	const int C = K*L*M;
 	const float xmin = -0.25f, ymin = -0.25f, zmin = -0.25f;
@@ -90,8 +90,17 @@ namespace c
 	//auto constexpr nutrient_threshold = 0.5f;
 
 	auto constexpr nutrient_diffusion_tumor = 0.001f;   // D_t
-	auto constexpr nutrient_diffusion_healthy = 0.01f;   // D_h
-	auto constexpr nutrient_consumption_rate_tumor = 0.1f;  // n(x,t)
+	auto constexpr nutrient_diffusion_healthy = 0.1f;   // D_h
+	auto constexpr nutrient_consumption_rate_tumor = 0.5f;  // n(x,t)
 	auto constexpr nutrient_consumption_rate_healthy = 0.0f;
-	auto constexpr nutrient_threshold = 0.9f;
+	auto constexpr nutrient_multiply_threshold = 0.9f;
+	auto constexpr nutrient_die_threshold = 0.05f;
+	auto constexpr nutrient_blood_vessel_concentration = 1.0f;
+}
+
+// tumor_setup 
+// added blood vessels and tumor cell in the center of system 
+namespace c
+{
+	auto const tumor_setup = true;
 }

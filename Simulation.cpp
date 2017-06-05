@@ -3,7 +3,7 @@
 #include "glm/gtx/string_cast.hpp"
 
 
-Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
+Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
 {
 	start_time = std::chrono::high_resolution_clock::now();
 	emitters.set_particle_system(particle_system);
@@ -12,7 +12,26 @@ Simulation::Simulation() : particle_count(0), mechanical_energy(0.0f), stats_fil
 	//emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
 	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(3.5f, 0.3f, 0.0f)));
 	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(0.0f, 0.3f, -3.5f)));
-	//emitters.add_emitter(Emitter(glm::vec3(c::xmax - c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(0.0f, 0.3f, 3.5f)));
+	emit_particles();
+	// tumor setup
+	if (c::tumor_setup) {
+		// building blood vessels
+		for (auto iter = c::zmin + 0.01f; iter < c::zmax - 0.01f; iter += 0.02f) {
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmax / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmin / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmax / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmin / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+		}
+		//Particle pt = Particle(glm::vec3(c::xmax), glm::vec3(0.0f), 1, RANDOM(0.1f, 0.2f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
+	}
 }
 
 Simulation::~Simulation()
@@ -28,7 +47,6 @@ Simulation::~Simulation()
 
 void Simulation::run(float dt)
 {
-	emit_particles();
 
 	grid.clear_grid();
 	particle_system.insert_sort_particles_by_indices();
@@ -36,7 +54,6 @@ void Simulation::run(float dt)
 
 	multiply_particles();
 
-	
 	//compute_density();
 	compute_interface_factor();
 
@@ -201,6 +218,7 @@ std::vector<Particle> Simulation::extract_surface_particles_2()
 void Simulation::emit_particles()
 {
 	using namespace c;
+	int particle_count = 0;
 	
 	// dam break setup
 	if (particle_count < c::N)
@@ -214,19 +232,27 @@ void Simulation::emit_particles()
 		//	for(float y = c::ymin*placement_mod - 0.25f; y < c::ymax*placement_mod; y += c::H*additional_margin)
 		//		for(float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
 		
-		for (float y = c::ymin + 2.0f*c::H; y < c::ymax - 2.0f*c::H; y += c::H*additional_margin)
-			for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin)
-				for (float x = c::xmin*placement_mod - 0.1f; x < c::xmax*placement_mod + 0.1f; x += c::H*additional_margin)
+		//for (float y = c::ymin + 2.0f*c::H; y < c::ymax - 2.0f*c::H; y += c::H*additional_margin) {
+		//	for (float z = c::zmin*placement_mod - 0.1f; z < c::zmax*placement_mod + 0.1f; z += c::H*additional_margin) {
+		//		for (float x = c::xmin*placement_mod - 0.1f; x < c::xmax*placement_mod + 0.1f; x += c::H*additional_margin)
+		
+		for (float x = c::xmin + 0.04f; x < c::xmax - 0.04f; x += 0.02f) {
+			for (float y = c::ymin + 0.04f; y < c::ymax - 0.04f; y += 0.02f) {
+				for (auto z = c::zmin + 0.04f; z < c::zmax - 0.04f; z += 0.02f)
 				{
 					Particle& tp = particles[particle_count];
-					tp.position = glm::vec3(x, y, z);
-					tp.velocity = glm::vec3(0.0f);
-					//tp.eval_velocity = glm::vec3(0.0f);
-					//tp.previous_position = tp.position;
-					++particle_count;
+					if (tp.type != 2) {
+						tp.position = glm::vec3(x, y, z);
+						tp.velocity = glm::vec3(0.0f);
+						//tp.eval_velocity = glm::vec3(0.0f);
+						//tp.previous_position = tp.position;
+						++particle_count;
+					}
 					if (particle_count >= c::N)
 						return;
 				}
+			}
+		}
 	}
 
 	if(emitters.is_any_emitter_alive())
@@ -257,7 +283,8 @@ void Simulation::compute_nutrient_concentration()
 			{
 				Particle & particle_i = *particle_i_ptr;
 				auto nutrient = 0.0f;
-
+				/*if (particle_i.type == 1)
+					std::cout << particle_i.nutrient << std::endl;*/
 				// go through neighbours of particle [ii] in grid [i]
 				for(int z = -1; z <= 1; ++z)
 				{
@@ -300,14 +327,21 @@ void Simulation::compute_nutrient_concentration()
 						}
 					}
 				}
+
 				// different constants of diffusion for different types of cells 				
-				nutrient *= c::nutrient_diffusion_tumor;
-				nutrient -= c::nutrient_consumption_rate_tumor;
-				
-				//} else { 
-				//	nutrient *= c::nutrient_diffusion_healthy;
-				//	nutrient -= c::nutrient_consumption_rate_healthy;
-				//} 
+				if (particle_i.type == 1)
+				{
+					nutrient *= c::nutrient_diffusion_tumor;
+					nutrient -= c::nutrient_consumption_rate_tumor;
+				}
+				else if (particle_i.type == 0) {
+				nutrient *= c::nutrient_diffusion_healthy;
+				nutrient -= c::nutrient_consumption_rate_healthy;
+				}
+				else if (particle_i.type == 2)
+				{
+					nutrient = c::nutrient_blood_vessel_concentration;
+				}
 
 				// compute nutrient concentration
 				particle_i.new_nutrient = nutrient;
@@ -332,9 +366,15 @@ void Simulation::compute_nutrient_concentration()
 }
 
 void Simulation::multiply_particles() {
+	using particle_system::get_cell_index;
+	using particle_system::out_of_grid_scope;
+
 	auto & particles = particle_system.particles;
 	glm::vec3 pos_to_multiply;
-	bool flag = false;
+	bool flag_multiply = false, flag_die = false;
+	int particle_id_die = 0;
+
+	auto & grid = this->grid.grid;
 
 	#pragma omp parallel default(shared)
 	{
@@ -342,17 +382,65 @@ void Simulation::multiply_particles() {
 		for (int idx = 0; idx < particles.size(); ++idx)
 		{
 			auto & p = particles[idx];
-			if (p.type == 1 && p.nutrient > c::nutrient_threshold) {
-				std::cout << p.nutrient << std::endl;
+
+			if (p.type == 1 && p.nutrient > c::nutrient_multiply_threshold) {
+				float highest_nutrient = 0.0f;
+
+				for (int z = -1; z <= 1; ++z){
+					for (int y = -1; y <= 1; ++y){
+						for (int x = -1; x <= 1; ++x){
+							glm::vec3 neighbour_cell_vector = p.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
+							if (out_of_grid_scope(neighbour_cell_vector))
+								continue;
+
+							int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
+							if (neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
+								continue;
+
+							Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
+
+							for (int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
+							{
+								Particle& particle_j = *particle_j_ptr;
+
+								glm::vec3 rVec = p.position - particle_j.position;
+								float r_sq = dot(rVec, rVec);
+								float r = sqrt(r_sq);
+
+								if (r > c::H)
+								{
+									++particle_j_ptr;
+									continue;
+								}
+
+								if (particle_j.nutrient > highest_nutrient) {
+									pos_to_multiply = particle_j.position;
+								}
+
+								++particle_j_ptr;
+							}
+
+						}
+					}
+				}			
+
 				p.nutrient = RANDOM(0.1f, 0.2f);
-				flag = true;
-				pos_to_multiply = p.position;
+				flag_multiply = true;
+			}
+			else if (p.type == 1 && p.nutrient < c::nutrient_die_threshold) {
+				flag_die = true;
+				particle_id_die = p.id;
 			}
 		}
 	}
-	if (flag){
-		Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, RANDOM(0.1f, 0.2f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
+	if (flag_multiply){
+		Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, c::restDensity, RANDOM(0.1f, 0.2f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 		particle_system.add_particle(pt);
+	}
+	else if (flag_die)
+	{
+		particle_system.delete_particle(particle_id_die);
+		std::cout << "particle_id_die: " << particle_id_die << "\n";
 	}
 }
 
@@ -676,7 +764,7 @@ void Simulation::compute_forces_compact()
 
 		args.externalF = glm::vec3(0.0f, c::gravityAcc * particle_i.mass, 0.0f);
 
-		args.totalF = args.pressureF + args.viscosityF + args.surfacetensionF + args.externalF;
+		args.totalF = args.pressureF + args.viscosityF; // + args.surfacetensionF + args.externalF
 
 		particle_i.acc = args.totalF / particle_i.mass;
 		particle_i.color_field_gradient_magnitude = colorFieldGradMag;
@@ -863,28 +951,29 @@ void Simulation::advance()
 			// 0. semi-implicit Euler
 			//glm::vec3 new_velocity = p.velocity + p.acc*dt;
 			//glm::vec3 new_position = p.position + new_velocity*dt;
+			if (p.type != 2) { // if particle is not blood vessel
+				// 1. velocity Verlet O(dt^3)
+				glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
+				glm::vec3 new_velocity = (new_position - p.position) / dt;
 
-			// 1. velocity Verlet O(dt^3)
-			glm::vec3 new_position = p.position + p.velocity*dt + 0.5f*p.acc*dt*dt;
-			glm::vec3 new_velocity = (new_position - p.position) / dt;
+				// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
+				//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
+				//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
 
-			// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
-			//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
-			//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
+				// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
+				//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
+				//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
+				//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
+				//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
 
-			// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
-			//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
-			//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
-			//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
-			//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
+				//p.previous_position = p.position;
+				p.position = new_position;
+				//p.eval_velocity = eval_velocity;
+				p.velocity = new_velocity;
 
-			//p.previous_position = p.position;
-			p.position = new_position;
-			//p.eval_velocity = eval_velocity;
-			p.velocity = new_velocity;
-
-			potential_force += p.position * glm::abs(p.acc) * p.mass;
-			kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f)) * p.mass;
+				potential_force += p.position * glm::abs(p.acc) * p.mass;
+				kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f)) * p.mass;
+			}
 		}
 	}
 	

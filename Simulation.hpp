@@ -80,7 +80,6 @@ private:
 	float LapW_viscosity(float r, float h);
 	glm::vec3 Grad_BicubicSpline(glm::vec3 x, float h);
 
-	int particle_count;
 	float mechanical_energy;
 	std::chrono::high_resolution_clock::time_point start_time;
 	std::vector<std::pair<float, float> > energy_stats;

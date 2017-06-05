@@ -44,8 +44,10 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
-	GLfloat compute_particle_color(Particle const & p);
+	GLint compute_particle_color(Particle const & p);
 	void add_particle(Particle p);
+	void delete_particle(int id);
+	//void delete_particle(Particle p);
 
 	void boost_mass(int no_particles, float boost_factor);
 
@@ -66,7 +68,7 @@ private:
 	SphereModel sphere_model;
 	std::vector<glm::mat4> model_matrices;
 	std::vector<GLfloat> bin_idx;
-	std::vector<GLfloat> particle_color;
+	std::vector<GLint> particle_color;
 	std::vector<GLuint> surface_particles;
 
 	// OpenGL
