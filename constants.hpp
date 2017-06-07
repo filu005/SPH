@@ -91,10 +91,10 @@ namespace c
 
 	auto constexpr nutrient_diffusion_tumor = 0.001f;   // D_t
 	auto constexpr nutrient_diffusion_healthy = 0.1f;   // D_h
-	auto constexpr nutrient_consumption_rate_tumor = 0.5f;  // n(x,t)
+	auto constexpr nutrient_consumption_rate_tumor = 0.3f;  // n(x,t)
 	auto constexpr nutrient_consumption_rate_healthy = 0.0f;
 	auto constexpr nutrient_multiply_threshold = 0.9f;
-	auto constexpr nutrient_die_threshold = 0.05f;
+	auto constexpr nutrient_die_threshold = 0.1f;
 	auto constexpr nutrient_blood_vessel_concentration = 1.0f;
 }
 
@@ -102,5 +102,5 @@ namespace c
 // added blood vessels and tumor cell in the center of system 
 namespace c
 {
-	auto const tumor_setup = true;
+	auto const tumor_setup = false;
 }

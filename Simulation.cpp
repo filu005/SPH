@@ -6,6 +6,7 @@
 Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
 {
 	start_time = std::chrono::high_resolution_clock::now();
+	steps = 0;
 	emitters.set_particle_system(particle_system);
 	//emitters.add_emitter(Emitter(glm::vec3(-0.1f, -0.2f, 0.0f)));
 	//emitters.add_emitter(Emitter(glm::vec3(0.1f, c::ymin + c::H*2.0f, 0.0f), glm::vec3(-3.5f, 0.3f, 0.0f)));
@@ -15,7 +16,7 @@ Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajn
 	emit_particles();
 	// tumor setup
 	if (c::tumor_setup) {
-		// building blood vessels
+		 //building blood vessels
 		for (auto iter = c::zmin + 0.01f; iter < c::zmax - 0.01f; iter += 0.02f) {
 			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
@@ -30,7 +31,6 @@ Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajn
 			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 		}
-		//Particle pt = Particle(glm::vec3(c::xmax), glm::vec3(0.0f), 1, RANDOM(0.1f, 0.2f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 	}
 }
 
@@ -55,17 +55,20 @@ void Simulation::run(float dt)
 	multiply_particles();
 
 	//compute_density();
-	compute_interface_factor();
+	compute_density_compact();
 
 	//for(int i = 0; i < 5; ++i)
-	compute_nutrient_concentration();
+	compute_nutrient_compact();
 
 	//compute_forces();
 	compute_forces_compact();
 	resolve_collisions();
 	
 	advance();
-	
+
+	if (steps == 150)
+		particle_system.add_particle(Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, 998.29f, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+
 	// tutaj bo Painter::paint() jest const
 	// do wizualizacji:
 	// za pomoca siatki generowanej przez MC
@@ -259,7 +262,58 @@ void Simulation::emit_particles()
 		emitters.emit();
 }
 
-void Simulation::compute_nutrient_concentration()
+void Simulation::compute_nutrient_compact()
+{
+	struct Args1{
+		Args1() : h_sq(c::H*c::H), nutrient(0.0f) { }
+
+		float const h_sq;
+		float nutrient;
+	};
+
+	static auto init_iparticle = [&](Particle & particle_i){
+
+	};
+	static auto computation_on_jparticles = [&](Particle & particle_i, Particle & particle_j, Args1 & args){
+		glm::vec3 rVec = particle_i.position - particle_j.position;
+		float r_sq = dot(rVec, rVec);
+		float r = sqrt(r_sq);
+
+		if (r > c::H)
+			return;
+
+		glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
+		args.nutrient += fabs(particle_j.nutrient - particle_i.nutrient) *(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
+		if (particle_j.type == particle_i.type == 1) {
+			args.nutrient /= 1.2;
+		}
+
+	};
+
+	static auto computation_on_iparticles = [&](Particle & particle_i, Args1 & args){
+		// different constants of diffusion for different types of cells 				
+		if (particle_i.type == 1)
+		{
+			args.nutrient *= c::nutrient_diffusion_tumor;
+			args.nutrient -= c::nutrient_consumption_rate_tumor;
+		}
+		else if (particle_i.type == 0) {
+			args.nutrient *= c::nutrient_diffusion_healthy;
+			args.nutrient -= c::nutrient_consumption_rate_healthy;
+		}
+		else if (particle_i.type == 2)
+		{
+			args.nutrient = c::nutrient_blood_vessel_concentration;
+		}
+
+		// compute nutrient concentration
+		particle_i.nutrient += args.nutrient*c::dt*0.2f;
+	};
+
+	iterate_particles_traverse_neighbours<Args1>(init_iparticle, computation_on_jparticles, computation_on_iparticles);
+
+}
+void Simulation::compute_nutrient()
 {
 	using particle_system::get_cell_index;
 	using particle_system::out_of_grid_scope;
@@ -335,8 +389,8 @@ void Simulation::compute_nutrient_concentration()
 					nutrient -= c::nutrient_consumption_rate_tumor;
 				}
 				else if (particle_i.type == 0) {
-				nutrient *= c::nutrient_diffusion_healthy;
-				nutrient -= c::nutrient_consumption_rate_healthy;
+					nutrient *= c::nutrient_diffusion_healthy;
+					nutrient -= c::nutrient_consumption_rate_healthy;
 				}
 				else if (particle_i.type == 2)
 				{
@@ -584,7 +638,7 @@ void Simulation::iterate_particles_traverse_neighbours(Func0 init_iparticle, Fun
 }
 
 
-void Simulation:: compute_interface_factor()
+void Simulation:: compute_density_compact()
 {
 	struct Args1
 	{
@@ -612,90 +666,11 @@ void Simulation:: compute_interface_factor()
 
 	static auto computation_on_iparticles = [](Particle & particle_i, Args1 & args)
 	{
-		particle_i.pressure = c::gasStiffness * (pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f);// Tait equation		
+		particle_i.pressure = c::gasStiffness * (pow((particle_i.mass * particle_i.density) / particle_i.fluid_rest_density, 7) - 1.0f); // Tait equation		
 	};
 
 	iterate_particles_traverse_neighbours<Args1>(init_iparticle, computation_on_jparticles, computation_on_iparticles);
 
-	//using particle_system::get_cell_index;
-	//using particle_system::out_of_grid_scope;
-	//using namespace c;
-	//const float h_sq = c::H*c::H;
-
-	//auto & grid = this->grid.grid;
-
-	//// go through all grids
-	//#pragma omp parallel default(shared)
-	//{
-	//	#pragma omp for schedule(static)
-	//	for(int idx = 0; idx < grid.size(); ++idx)
-	//	{
-	//		auto & i = grid[idx];
-	//		Particle * particle_i_ptr = i.first_particle;
-
-	//		// go through all particles in grid [i]
-	//		for(int ii = 0; ii < i.no_particles; ++ii)
-	//		{
-	//			Particle & particle_i = *particle_i_ptr;
-
-	//			glm::vec3 interface_color_field_grad(0.0f);
-	//			auto interface_color_field_lap = 0.0f;
-
-	//			// go through neighbours of particle [ii] in grid [i]
-	//			for(int z = -1; z <= 1; ++z)
-	//			{
-	//				for(int y = -1; y <= 1; ++y)
-	//				{
-	//					for(int x = -1; x <= 1; ++x)
-	//					{
-	//						glm::vec3 neighbour_cell_vector = particle_i.position + glm::vec3(x*c::dx, y*c::dy, z*c::dz);
-	//						if(out_of_grid_scope(neighbour_cell_vector))
-	//							continue;
-
-	//						int neighbour_grid_idx = get_cell_index(neighbour_cell_vector);
-	//						if(neighbour_grid_idx < 0 || neighbour_grid_idx >= c::C)
-	//							continue;
-
-	//						Particle * particle_j_ptr = grid[neighbour_grid_idx].first_particle;
-
-	//						for(int j = 0; j < grid[neighbour_grid_idx].no_particles; ++j)
-	//						{
-	//							Particle& particle_j = *particle_j_ptr;
-
-	//							glm::vec3 rVec = particle_i.position - particle_j.position;
-	//							float r_sq = dot(rVec, rVec);
-	//							float r = sqrt(r_sq);
-	//							//float r = glm::length(rVec);
-
-	//							if(r > c::H)
-	//							{
-	//								++particle_j_ptr;
-	//								continue;
-	//							}
-
-	//							glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-
-	//							// [SP08] - introduce smooth color field for interface-force
-	//							interface_color_field_grad += particle_j.color_value*gradW_poly / particle_j.density;
-	//							interface_color_field_lap += particle_j.color_value*LapW_poly6(r, c::H) / particle_j.density;
-
-	//							if(particle_i.id == particle_j.id)
-	//							{
-	//								++particle_j_ptr;
-	//								continue;
-	//							}
-
-	//							++particle_j_ptr;
-	//						}
-	//					}
-	//				}
-	//			}
-
-	//			++particle_i_ptr;
-
-	//		}
-	//	}
-	//}
 }
 
 void Simulation::compute_forces_compact()
@@ -979,6 +954,7 @@ void Simulation::advance()
 	
 	iteration_count++;
 	sim_time += dt;
+	steps++;
 	mechanical_energy = 0.5f*glm::length(kinetic_force) + glm::length(potential_force);
 	//auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
 	//if(iteration_count % 5u == 0)

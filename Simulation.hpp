@@ -43,6 +43,7 @@ public:
 	MCMesh mesh;
 	Box bounding_box;
 	Grid grid;
+	int steps;
 
 private:
 	/**
@@ -60,11 +61,12 @@ private:
 	std::vector<Particle> extract_surface_particles_2();
 
 	void emit_particles();
-	void compute_nutrient_concentration();
+	void compute_nutrient();
+	void compute_nutrient_compact();
 	void compute_density();
 	template<typename Args, typename Func0, typename Func1, typename Func2>
 	void iterate_particles_traverse_neighbours(Func0 init_iparticle, Func1 computation_on_jparticles, Func2 computation_on_iparticle);
-	void compute_interface_factor();
+	void compute_density_compact();
 	void compute_forces_compact();
 	void compute_forces();
 	void advance();
