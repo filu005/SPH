@@ -11,6 +11,7 @@
 #include "Emitters.hpp"
 #include "Paintable.hpp"
 
+class Camera;
 
 namespace particle_system
 {
@@ -44,7 +45,7 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
-	GLint compute_particle_color(Particle const & p);
+	GLint compute_particle_color(int type);
 	void add_particle(Particle p);
 	void delete_particle(int id);
 	//void delete_particle(Particle p);
@@ -56,6 +57,8 @@ public:
 	 * of Grid. Thanks to sorting the Grid can easily store an information about neighbours.
 	 */
 	void insert_sort_particles_by_indices();
+
+	void set_camera(Camera const & camera) { camera_ref = &camera; }
 
 	GLsizei const bin_count = c::C;// == c::C
 	GLsizei particle_count = c::N;// == c::N
@@ -77,4 +80,6 @@ private:
 	GLuint bin_idx_VBO;
 	GLuint particle_color_VBO;
 	GLuint at_surface_VBO;
+
+	Camera const * camera_ref;// Reference from Application class
 };

@@ -1,6 +1,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <numeric>
 
+#include "Camera.hpp"
 #include "Painter.hpp"
 #include "SphereModel.hpp"
 #include "ParticleSystem.hpp"
@@ -65,7 +66,7 @@ namespace particle_system
 	}
 }
 
-ParticleSystem::ParticleSystem()
+ParticleSystem::ParticleSystem() : camera_ref(nullptr)
 {
 	particles.resize(c::N);
 	model_matrices.resize(c::N);
@@ -94,7 +95,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_color[index] = compute_particle_color(p);
+		particle_color[index] = compute_particle_color(p.type);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -202,19 +203,35 @@ void ParticleSystem::reset_buffers()
 void ParticleSystem::update_buffers()
 {
 	using particle_system::get_cell_index;
+	assert(camera_ref != nullptr);
 
-	int index = 0;
-	for(auto const & p : particles)
+	// prepare data for copying it onto GPU
 	{
-		auto const particle_position = p.position;
-		glm::mat4 model;
-		model = glm::translate(model, particle_position);
-		model = glm::scale(model, glm::vec3(0.02f));
-		model_matrices[index] = model;
-		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_color[index] = compute_particle_color(p);
-		surface_particles[index] = p.at_surface;
-		index++;
+		struct RenderingData
+		{
+			glm::vec3 position;
+			int type;
+			bool at_surface;
+		};
+		std::vector<RenderingData> particles_rendering_data;
+		particles_rendering_data.reserve(particles.size());
+		for (auto const & p : particles)
+			particles_rendering_data.push_back(RenderingData{ p.position, p.type, p.at_surface });
+		std::sort(particles_rendering_data.begin(), particles_rendering_data.end(), [&](RenderingData const & rda, RenderingData const & rdb) { return glm::distance(rda.position, camera_ref->Position) > glm::distance(rdb.position, camera_ref->Position); });
+
+		int index = 0;
+		for (auto const & rd : particles_rendering_data)
+		{
+			auto const & particle_position = rd.position;
+			glm::mat4 model;
+			model = glm::translate(model, particle_position);
+			model = glm::scale(model, glm::vec3(0.02f));
+			model_matrices[index] = model;
+			bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
+			particle_color[index] = compute_particle_color(rd.type);
+			surface_particles[index] = rd.at_surface;
+			index++;
+		}
 	}
 
 	// alternatywa: http://www.gamedev.net/topic/666461-map-buffer-range-super-slow/
@@ -244,11 +261,11 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 	return position_color_field_data;
 }
 
-GLint ParticleSystem::compute_particle_color(Particle const & p)
+GLint ParticleSystem::compute_particle_color(int type)
 {
 	//static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
-	if (p.type == 0) { return 0; }
-	else if (p.type == 1) { return 1; }
+	if (type == 0) { return 0; }
+	else if (type == 1) { return 1; }
 	else { 	return 2;}
 	//return 1-p.nutrient;  //average;// * 1.5f
 }
