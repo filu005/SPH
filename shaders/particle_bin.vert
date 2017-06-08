@@ -18,7 +18,7 @@ void main()
 	gl_Position = projection * view * model_mat * vec4(position, 1.0);
 	float scaled_pressure = mix(0.0, 1.0, particle_color_mod);
 	if (particle_color_mod == 0){
-		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 0.1) + 0.5*vec4(1.0, 0.0, 1.0, 0.1);
+		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 0.0) + 0.5*vec4(1.0, 0.0, 1.0, 0.0);
 	}else if(particle_color_mod == 2){
 		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 1.0) + 0.5*vec4(1.0, 0.0, 1.0, 1.0);
 	}else if(particle_color_mod == 1) {

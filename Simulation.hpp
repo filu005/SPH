@@ -62,7 +62,6 @@ private:
 
 	void emit_particles();
 	void compute_nutrient();
-	void compute_nutrient_compact();
 	void compute_density();
 	template<typename Args, typename Func0, typename Func1, typename Func2>
 	void iterate_particles_traverse_neighbours(Func0 init_iparticle, Func1 computation_on_jparticles, Func2 computation_on_iparticle);

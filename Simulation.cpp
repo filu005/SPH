@@ -14,8 +14,9 @@ Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajn
 	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmin + c::H*2.0f), glm::vec3(3.5f, 0.3f, 0.0f)));
 	//emitters.add_emitter(Emitter(glm::vec3(c::xmin + c::H*2.0f, -c::H, c::zmax - c::H*2.0f), glm::vec3(0.0f, 0.3f, -3.5f)));
 	emit_particles();
-	// tumor setup
-	if (c::tumor_setup) {
+
+	// blood vessels setup
+	if (c::blood_vessels_setup) {
 		 //building blood vessels
 		for (auto iter = c::zmin + 0.01f; iter < c::zmax - 0.01f; iter += 0.02f) {
 			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
@@ -57,8 +58,7 @@ void Simulation::run(float dt)
 	//compute_density();
 	compute_density_compact();
 
-	//for(int i = 0; i < 5; ++i)
-	compute_nutrient_compact();
+	compute_nutrient();
 
 	//compute_forces();
 	compute_forces_compact();
@@ -66,7 +66,7 @@ void Simulation::run(float dt)
 	
 	advance();
 
-	if (steps == 150)
+	if (steps == 50)
 		particle_system.add_particle(Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, 998.29f, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 
 	// tutaj bo Painter::paint() jest const
@@ -262,57 +262,6 @@ void Simulation::emit_particles()
 		emitters.emit();
 }
 
-void Simulation::compute_nutrient_compact()
-{
-	struct Args1{
-		Args1() : h_sq(c::H*c::H), nutrient(0.0f) { }
-
-		float const h_sq;
-		float nutrient;
-	};
-
-	static auto init_iparticle = [&](Particle & particle_i){
-
-	};
-	static auto computation_on_jparticles = [&](Particle & particle_i, Particle & particle_j, Args1 & args){
-		glm::vec3 rVec = particle_i.position - particle_j.position;
-		float r_sq = dot(rVec, rVec);
-		float r = sqrt(r_sq);
-
-		if (r > c::H)
-			return;
-
-		glm::vec3 gradW_poly = GradW_poly6(r, c::H)*rVec;
-		args.nutrient += fabs(particle_j.nutrient - particle_i.nutrient) *(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
-		if (particle_j.type == particle_i.type == 1) {
-			args.nutrient /= 1.2;
-		}
-
-	};
-
-	static auto computation_on_iparticles = [&](Particle & particle_i, Args1 & args){
-		// different constants of diffusion for different types of cells 				
-		if (particle_i.type == 1)
-		{
-			args.nutrient *= c::nutrient_diffusion_tumor;
-			args.nutrient -= c::nutrient_consumption_rate_tumor;
-		}
-		else if (particle_i.type == 0) {
-			args.nutrient *= c::nutrient_diffusion_healthy;
-			args.nutrient -= c::nutrient_consumption_rate_healthy;
-		}
-		else if (particle_i.type == 2)
-		{
-			args.nutrient = c::nutrient_blood_vessel_concentration;
-		}
-
-		// compute nutrient concentration
-		particle_i.nutrient += args.nutrient*c::dt*0.2f;
-	};
-
-	iterate_particles_traverse_neighbours<Args1>(init_iparticle, computation_on_jparticles, computation_on_iparticles);
-
-}
 void Simulation::compute_nutrient()
 {
 	using particle_system::get_cell_index;
@@ -375,6 +324,9 @@ void Simulation::compute_nutrient()
 									continue;
 								}
 								nutrient += fabs(particle_j.nutrient - particle_i.nutrient) *(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
+								if (particle_i.type == 1 && particle_j.type == 1) {
+									nutrient /= 2;
+								}
 								++particle_j_ptr;
 							}
 
@@ -385,11 +337,11 @@ void Simulation::compute_nutrient()
 				// different constants of diffusion for different types of cells 				
 				if (particle_i.type == 1)
 				{
-					nutrient *= c::nutrient_diffusion_tumor;
+					nutrient *= c::nutrient_diffusion_constant;
 					nutrient -= c::nutrient_consumption_rate_tumor;
 				}
 				else if (particle_i.type == 0) {
-					nutrient *= c::nutrient_diffusion_healthy;
+					nutrient *= c::nutrient_diffusion_constant;
 					nutrient -= c::nutrient_consumption_rate_healthy;
 				}
 				else if (particle_i.type == 2)
@@ -413,8 +365,12 @@ void Simulation::compute_nutrient()
 		for(int idx = 0; idx < particles.size(); ++idx)
 		{
 			auto & p = particles[idx];
-
-			p.nutrient = p.nutrient + p.new_nutrient*c::dt*0.2f;
+			if (p.type == 1 || p.type == 0){
+				p.nutrient = p.nutrient + p.new_nutrient*c::dt*0.2f;
+			}
+			else if (p.type == 2) {
+				p.nutrient = p.new_nutrient;
+			}
 		}
 	}
 }
@@ -424,9 +380,10 @@ void Simulation::multiply_particles() {
 	using particle_system::out_of_grid_scope;
 
 	auto & particles = particle_system.particles;
-	glm::vec3 pos_to_multiply;
-	bool flag_multiply = false, flag_die = false;
-	int particle_id_die = 0;
+	
+	std::vector<glm::vec3> positions_to_multiply;
+	std::vector<int> particle_id_die;
+	bool flag_multiply = false, flag_die = false, internal = false;
 
 	auto & grid = this->grid.grid;
 
@@ -436,9 +393,12 @@ void Simulation::multiply_particles() {
 		for (int idx = 0; idx < particles.size(); ++idx)
 		{
 			auto & p = particles[idx];
-
-			if (p.type == 1 && p.nutrient > c::nutrient_multiply_threshold) {
+			/*if (p.type == 1) {
+				std::cout << p.nutrient << std::endl;
+			}*/
 				float highest_nutrient = 0.0f;
+				int tumor_neighbors = 0, overall_neighbors = 0;
+				glm::vec3 pos_to_multiply;
 
 				for (int z = -1; z <= 1; ++z){
 					for (int y = -1; y <= 1; ++y){
@@ -467,34 +427,54 @@ void Simulation::multiply_particles() {
 									continue;
 								}
 
-								if (particle_j.nutrient > highest_nutrient) {
+								if ((p.type == 1 && p.nutrient > c::nutrient_multiply_threshold) && particle_j.nutrient > highest_nutrient) { // if tumor and oxygen above threshold -> miltiply
 									pos_to_multiply = particle_j.position;
+									internal = true;	
 								}
-
+								
+								if (p.type == 0) {
+									if (particle_j.type == 1) {
+										tumor_neighbors++;
+									}
+										overall_neighbors++;									
+								}
+								//else if (p.type == 0 && particle_j.type == 1) { // if i is healthy and surrounded by tumor -> increase tumor neighbor number. If big enough, kill this healty cell later 
+								//	tumor_neighbors++;
+								//}
 								++particle_j_ptr;
 							}
-
 						}
 					}
-				}			
-
-				p.nutrient = RANDOM(0.1f, 0.2f);
-				flag_multiply = true;
-			}
-			else if (p.type == 1 && p.nutrient < c::nutrient_die_threshold) {
-				flag_die = true;
-				particle_id_die = p.id;
-			}
+				}
+				if (internal) {
+					positions_to_multiply.push_back(pos_to_multiply);
+					p.nutrient = RANDOM(0.2f, 0.3f);
+					flag_multiply = true;
+					internal = false;
+				}
+				else if (p.type == 1 && p.nutrient < c::nutrient_die_threshold) { // if tumor and oxygen below threshold -> kill
+					particle_id_die.push_back(p.id);
+					std::cout << "particle_with_id: " << p.id << " of type:"<< p.type << "\n";
+					flag_die = true;
+				}
+				else if (tumor_neighbors > 0.9*overall_neighbors && p.type == 0) {				  // if healthy and many tumor neighbors -> kill
+					particle_id_die.push_back(p.id);		
+					std::cout << "particle_with_id: " << p.id << " of type:" << p.type << "\n";
+					flag_die = true;
+				}
 		}
 	}
-	if (flag_multiply){
-		Particle pt = Particle(pos_to_multiply, glm::vec3(0.0f), 1, c::restDensity, RANDOM(0.1f, 0.2f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
-		particle_system.add_particle(pt);
+	if (flag_multiply) {
+		for (auto const &pos : positions_to_multiply) {
+			particle_system.add_particle(Particle(pos, glm::vec3(0.0f), 1, c::restDensity, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+		}
+		positions_to_multiply.clear();
 	}
-	else if (flag_die)
-	{
-		particle_system.delete_particle(particle_id_die);
-		std::cout << "particle_id_die: " << particle_id_die << "\n";
+	else if (flag_die) {
+		for (auto const &kill_particle : particle_id_die) {
+			particle_system.delete_particle(kill_particle);
+		}
+		particle_id_die.clear();
 	}
 }
 
@@ -638,7 +618,7 @@ void Simulation::iterate_particles_traverse_neighbours(Func0 init_iparticle, Fun
 }
 
 
-void Simulation:: compute_density_compact()
+void Simulation::compute_density_compact()
 {
 	struct Args1
 	{
