@@ -95,7 +95,7 @@ void ParticleSystem::setup_buffers(void)
 		model = glm::scale(model, glm::vec3(0.02f));
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-		particle_color[index] = compute_particle_color(p.type);
+		particle_color[index] = compute_particle_color(p.type, p.state);
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -210,13 +210,14 @@ void ParticleSystem::update_buffers()
 		struct RenderingData
 		{
 			glm::vec3 position;
-			int type;
+			int type; 
+			int state;
 			bool at_surface;
 		};
 		std::vector<RenderingData> particles_rendering_data;
 		particles_rendering_data.reserve(particles.size());
 		for (auto const & p : particles)
-			particles_rendering_data.push_back(RenderingData{ p.position, p.type, p.at_surface });
+			particles_rendering_data.push_back(RenderingData{ p.position, p.type, p.state, p.at_surface });
 		std::sort(particles_rendering_data.begin(), particles_rendering_data.end(), [&](RenderingData const & rda, RenderingData const & rdb) { return glm::distance(rda.position, camera_ref->Position) > glm::distance(rdb.position, camera_ref->Position); });
 
 		int index = 0;
@@ -228,7 +229,7 @@ void ParticleSystem::update_buffers()
 			model = glm::scale(model, glm::vec3(0.02f));
 			model_matrices[index] = model;
 			bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
-			particle_color[index] = compute_particle_color(rd.type);
+			particle_color[index] = compute_particle_color(rd.type, rd.state);
 			surface_particles[index] = rd.at_surface;
 			index++;
 		}
@@ -261,13 +262,17 @@ std::unique_ptr<glm::vec4[]> ParticleSystem::get_position_color_field_data()
 	return position_color_field_data;
 }
 
-GLint ParticleSystem::compute_particle_color(int type)
+GLint ParticleSystem::compute_particle_color(int type, int state)
 {
 	//static auto average = std::accumulate(particles.begin(), particles.end(), 0.0f, [](float const & sum, Particle const & p) { return sum + p.nutrient; }) / particles.size();
-	if (type == 0) { return 0; }
+	/*if (type == 0) { return 0; }
 	else if (type == 1) { return 1; }
-	else { 	return 2;}
-	//return 1-p.nutrient;  //average;// * 1.5f
+	else { 	return 2;}*/
+	if (type == 0) { return 0; }
+	else if (type == 1 && state == proliferative) { return 1; }
+	else if (type == 1 && state == quiescent) { return 2; }
+	else if (type == 1 && state == dead) { return 3; }
+	else { 	return 4;}
 }
 
 void ParticleSystem::add_particle(Particle p)
@@ -289,6 +294,10 @@ void ParticleSystem::add_particle(Particle p)
 void ParticleSystem::delete_particle(int id)
 {
 	particles.erase(std::find_if(particles.begin(), particles.end(), [&](Particle& p) { return p.id == id; }));
+	model_matrices.erase(model_matrices.end() - 1);
+	bin_idx.erase(bin_idx.end()-1); 
+	particle_color.erase(particle_color.end() - 1);
+	surface_particles.erase(surface_particles.end() - 1);
 
 	--particle_count;
 

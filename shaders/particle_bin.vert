@@ -17,12 +17,21 @@ void main()
 	// gl_PointSize = 7.0;
 	gl_Position = projection * view * model_mat * vec4(position, 1.0);
 	float scaled_pressure = mix(0.0, 1.0, particle_color_mod);
-	if (particle_color_mod == 0){
+	
+	if (particle_color_mod == 0){  // healthy
 		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 0.0) + 0.5*vec4(1.0, 0.0, 1.0, 0.0);
-	}else if(particle_color_mod == 2){
+	}  //tumor in proliferative  0  255  0
+	else if(particle_color_mod == 1) {
+		outColor = vec4(0.0, 1.0, 0.0, 1.0);
+	}	//tumor in quiescent   233  233  12
+	else if(particle_color_mod == 2) {
+		outColor = vec4(0.91, 0.91, 0.04, 1.0);
+	}	//tumor in dead   12  7  152
+	else if(particle_color_mod == 3) {
+		outColor = vec4(0.04, 0.02, 0.59, 1.0);
+	}   // blood vessels
+	else if(particle_color_mod == 4){
 		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 1.0) + 0.5*vec4(1.0, 0.0, 1.0, 1.0);
-	}else if(particle_color_mod == 1) {
-		outColor = vec4(0.54, 0.27, 0.07, 1.0);
-	}
-}
+	} 
 
+} 

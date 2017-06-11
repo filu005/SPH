@@ -45,7 +45,7 @@ public:
 	void update_buffers();
 	std::unique_ptr<glm::vec4[]> get_position_color_field_data();
 
-	GLint compute_particle_color(int type);
+	GLint compute_particle_color(int type, int state);
 	void add_particle(Particle p);
 	void delete_particle(int id);
 	//void delete_particle(Particle p);
