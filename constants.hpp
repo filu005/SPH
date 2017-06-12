@@ -93,7 +93,7 @@ namespace c
 	auto constexpr nutrient_consumption_rate_tumor = 0.25f;  // n(x,t)
 	auto constexpr nutrient_consumption_rate_healthy = 0.0f;
 	auto constexpr nutrient_multiply_threshold = 0.9f;	
-	auto constexpr nutrient_die_threshold = 0.15f;
+	auto constexpr nutrient_die_threshold = 0.2f;
 	auto constexpr nutrient_blood_vessel_concentration = 1.0f;
 }
 

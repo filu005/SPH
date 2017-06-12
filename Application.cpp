@@ -12,7 +12,7 @@ Application::Application()
 	
 	_painter.set_camera(camera);
 	box_editor.set_camera(camera);
-	//camera.StaticCamera();
+	camera.StaticCamera();
 	box_editor.set_bounding_box(_sim.bounding_box);
 	box_editor.set_emitters(_sim.emitters);
 	box_editor.set_particle_system(_sim.particle_system);

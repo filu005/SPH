@@ -70,6 +70,8 @@ void Simulation::run(float dt)
 		auto part = Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, proliferative, steps, 200, 998.29f, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 		particle_system.add_particle(part);
 	}
+
+	std::cout << "Number of particles:" << particle_system.particles.size() << std::endl;
 	// tutaj bo Painter::paint() jest const
 	// do wizualizacji:
 	// za pomoca siatki generowanej przez MC
@@ -431,7 +433,7 @@ void Simulation::update_particles_status() {
 		{
 			auto & p = particles[idx];
 
-				int tumor_neighbors = 0, overall_neighbors = 0;
+				int tumor_neighbors = 0, overall_neighbors = 0, quiescent_neighbors = 0;
 
 				for (int z = -1; z <= 1; ++z){
 					for (int y = -1; y <= 1; ++y){
@@ -462,6 +464,9 @@ void Simulation::update_particles_status() {
 		
 								if (particle_j.type == 1) {
 									++tumor_neighbors;
+									if (particle_j.state == quiescent) {
+										quiescent_neighbors++;
+									}
 								}
 
 								++overall_neighbors;
@@ -470,21 +475,22 @@ void Simulation::update_particles_status() {
 						}
 					}
 				}
-				if (p.type == 1 && p.nutrient < c::nutrient_die_threshold && p.state != dead ) {		// if tumor have oxygen below threshold -> necrosis
+				if ((p.type == 1 && p.nutrient < c::nutrient_die_threshold && p.state != dead)				// if tumor have oxygen below threshold -> necrosis
+					|| (p.type == 1 && quiescent_neighbors > 0.9*overall_neighbors &&  p.state != dead)) {	// if tumor have much quiescent neighbors -> necrosis
 					p.consumption_rate = 0.0f;
 					p.state = dead;
-					std::cout << "particle_with_id: " << p.id << " necrosis." << "\n";
-				}
-				if (tumor_neighbors > 0.9*overall_neighbors && p.type == 0) {		  // if healthy and many tumor neighbors -> kill
-					#pragma omp critical
-						particle_id_die.push_back(p.id);		
-					std::cout << "particle_with_id: " << p.id << " died." << "\n";
-					flag_die = true;
-				}
+					//std::cout << "particle_with_id: " << p.id << " necrosis." << "\n";
+				}	
+				//if (tumor_neighbors > 0.9*overall_neighbors && p.type == 0) {		  // if healthy and many tumor neighbors -> kill
+				//	#pragma omp critical
+				//		particle_id_die.push_back(p.id);		
+				//	std::cout << "particle_with_id: " << p.id << " died." << "\n";
+				//	flag_die = true;
+				//}
 				if ((tumor_neighbors > 0.75*overall_neighbors) && p.type == 1 && p.state == proliferative) {	// if tumor and have 75% of tumor neighbors -> quiescent
 					p.state = quiescent;
 					p.consumption_rate = c::nutrient_consumption_rate_tumor/5;
-					std::cout << "particle_with_id: " << p.id << " quiescent." << "\n";
+					//std::cout << "particle_with_id: " << p.id << " quiescent." << "\n";
 				}
 		}
 	}	
