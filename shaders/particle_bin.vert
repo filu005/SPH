@@ -19,7 +19,7 @@ void main()
 	float scaled_pressure = mix(0.0, 1.0, particle_color_mod);
 	
 	if (particle_color_mod == 0){  // healthy
-		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 0.0) + 0.5*vec4(1.0, 0.0, 1.0, 0.0);
+		outColor = 0.5*vec4(scaled_pressure, 0.0, 1.0 - scaled_pressure, 0.2) + 0.5*vec4(1.0, 0.0, 1.0, 0.2);
 	}  //tumor in proliferative  0  255  0
 	else if(particle_color_mod == 1) {
 		outColor = vec4(0.0, 1.0, 0.0, 1.0);

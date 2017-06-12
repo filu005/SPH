@@ -54,7 +54,7 @@ void Simulation::run(float dt)
 	bin_particles_in_grid();
 
 	multiply_particles();
-	update_particles_status();
+	
 	//compute_density();
 	compute_density_compact();
 
@@ -65,7 +65,7 @@ void Simulation::run(float dt)
 	resolve_collisions();
 	
 	advance();
-
+	update_particles_status();
 	if (steps == 50) { // add tumor
 		auto part = Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, proliferative, steps, 200, 998.29f, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 		particle_system.add_particle(part);
@@ -79,6 +79,7 @@ void Simulation::run(float dt)
 	// przy pomocy ray castingu na distance field
 	//distance_field.generate_field_from_surface_particles(extract_surface_particles());
 	// wizualizacja poszczegolnych czasteczek
+	
 	particle_system.update_buffers();
 }
 
@@ -111,7 +112,7 @@ void Simulation::bin_particles_in_grid()
 
 		++grid[c].no_particles;
 	}
-}
+}	
 
 std::vector<Particle> Simulation::extract_surface_particles()
 {
@@ -421,8 +422,8 @@ void Simulation::update_particles_status() {
 
 	auto & particles = particle_system.particles;
 	
-	std::vector<int> particle_id_die, particle_id_necrosis;
-	bool flag_die=false, flag_necrosis=false;
+	std::vector<int> particle_id_die;
+	bool flag_die=false;
 
 	auto & grid = this->grid.grid;
 
@@ -481,12 +482,12 @@ void Simulation::update_particles_status() {
 					p.state = dead;
 					//std::cout << "particle_with_id: " << p.id << " necrosis." << "\n";
 				}	
-				//if (tumor_neighbors > 0.9*overall_neighbors && p.type == 0) {		  // if healthy and many tumor neighbors -> kill
-				//	#pragma omp critical
-				//		particle_id_die.push_back(p.id);		
-				//	std::cout << "particle_with_id: " << p.id << " died." << "\n";
-				//	flag_die = true;
-				//}
+				if (tumor_neighbors > 0.9*overall_neighbors && p.type == 0) {		  // if healthy and many tumor neighbors -> kill
+					#pragma omp critical
+						particle_id_die.push_back(p.id);		
+					//std::cout << "particle_with_id: " << p.id << " died." << "\n";
+					flag_die = true;
+				}
 				if ((tumor_neighbors > 0.75*overall_neighbors) && p.type == 1 && p.state == proliferative) {	// if tumor and have 75% of tumor neighbors -> quiescent
 					p.state = quiescent;
 					p.consumption_rate = c::nutrient_consumption_rate_tumor/5;
@@ -873,7 +874,7 @@ void Simulation::compute_forces()
 
 bool save_screenshot(std::string filename, int w, int h)
 {
-	//This prevents the images getting padded 
+	// This prevents the images getting padded 
 	// when the width multiplied by 3 is not a multiple of 4
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
@@ -995,9 +996,10 @@ void Simulation::resolve_collisions()
 
 			if(wall_particle_distance > epsilon)
 			{
-				float spring = c::wall_stiffness*wall_particle_distance + c::wall_damping*dot(wall_normal, tp.velocity);//eval_velocity
+				float spring = c::wall_stiffness*wall_particle_distance + c::wall_damping*dot(wall_normal, tp.velocity); //eval_velocity
 				tp.acc += spring*wall_normal;
 			}
+		
 
 			// ----------------------------------------------------------------
 

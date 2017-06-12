@@ -115,7 +115,7 @@ void ParticleSystem::setup_buffers(void)
 
 	glGenBuffers(1, &this->particle_color_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * particle_count, &this->particle_color[0], GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLint) * particle_count, &this->particle_color[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &this->at_surface_VBO);
@@ -246,7 +246,7 @@ void ParticleSystem::update_buffers()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * particle_count, &this->particle_color[0]);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLint) * particle_count, &this->particle_color[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
@@ -294,10 +294,10 @@ void ParticleSystem::add_particle(Particle p)
 void ParticleSystem::delete_particle(int id)
 {
 	particles.erase(std::find_if(particles.begin(), particles.end(), [&](Particle& p) { return p.id == id; }));
-	model_matrices.erase(model_matrices.end() - 1);
+	model_matrices.erase(model_matrices.end()-1);
 	bin_idx.erase(bin_idx.end()-1); 
-	particle_color.erase(particle_color.end() - 1);
-	surface_particles.erase(surface_particles.end() - 1);
+	particle_color.erase(particle_color.end()-1);
+	surface_particles.erase(surface_particles.end()-1);
 
 	--particle_count;
 
