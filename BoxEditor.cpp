@@ -59,7 +59,7 @@ void BoxEditor::process_mouse_click(float xpos, float ypos)
 		auto & ps = *particle_system_ref;
 		//auto & emtt = *emitters_ref;
 		// add emitter; place emitter in place
-		Particle particle = Particle(intersection_point, new_emitter_velocity_vector, 1, proliferative, 0, 200, 998.29f, RANDOM(0.1f, 0.2f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
+		Particle particle = Particle(intersection_point, new_emitter_velocity_vector, 1, proliferative, 0, 200, 1, 998.29f, RANDOM(0.1f, 0.2f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 		ps.add_particle(particle);  //type=1 -> adding tumor
 		//emtt.add_emitter(Emitter(intersection_point, new_emitter_velocity_vector, 0, RANDOM(0.8f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 		// reset extrusion

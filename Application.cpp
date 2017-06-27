@@ -16,6 +16,7 @@ Application::Application()
 	box_editor.set_bounding_box(_sim.bounding_box);
 	box_editor.set_emitters(_sim.emitters);
 	box_editor.set_particle_system(_sim.particle_system);
+	
 	_sim.particle_system.set_camera(camera);
 }
 

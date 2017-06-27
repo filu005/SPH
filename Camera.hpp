@@ -9,7 +9,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "constants.hpp"
-
+#include <iostream>
 
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
@@ -76,6 +76,7 @@ public:
 			this->Position -= this->Right * velocity;
 		if(direction == RIGHT)
 			this->Position += this->Right * velocity;
+		//std::cout << Position.x << "  " << Position.y  << "  " << Position.z << std::endl;
 	}
 
 	// Processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -95,11 +96,18 @@ public:
 			if(this->Pitch < -89.0f)
 				this->Pitch = -89.0f;
 		}
-
+		//std::cout << Yaw << "pitch " << Pitch << std::endl;
 		// Update Front, Right and Up Vectors using the updated Eular angles
 		this->updateCameraVectors();
 	}
 
+	void set(glm::vec3 pos , GLfloat yaw, GLfloat pitch) {
+		this->Position = pos;
+		this->Yaw = yaw;
+		this->Pitch = pitch;
+		this->WorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		this->updateCameraVectors();
+	}
 	// Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
 	void ProcessMouseScroll(GLfloat yoffset)
 	{

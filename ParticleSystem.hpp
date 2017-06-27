@@ -57,8 +57,10 @@ public:
 	 * of Grid. Thanks to sorting the Grid can easily store an information about neighbours.
 	 */
 	void insert_sort_particles_by_indices();
-
 	void set_camera(Camera const & camera) { camera_ref = &camera; }
+
+	void x_cross_section(int which);
+	int get_x_transparency(glm::vec3 pos);
 
 	GLsizei const bin_count = c::C;// == c::C
 	GLsizei particle_count = c::N;// == c::N
@@ -72,6 +74,7 @@ private:
 	std::vector<glm::mat4> model_matrices;
 	std::vector<GLfloat> bin_idx;
 	std::vector<GLint> particle_color;
+	std::vector<GLint> particle_transparency;
 	std::vector<GLuint> surface_particles;
 
 	// OpenGL
@@ -80,6 +83,10 @@ private:
 	GLuint bin_idx_VBO;
 	GLuint particle_color_VBO;
 	GLuint at_surface_VBO;
+	GLuint particle_transparency_VBO;
+
+	int x_transparency_more;
+	int x_transparency_less;
 
 	Camera const * camera_ref;// Reference from Application class
 };

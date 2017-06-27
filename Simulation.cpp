@@ -1,10 +1,15 @@
 #include "Simulation.hpp"
-#include <iostream>
 #include "glm/gtx/string_cast.hpp"
 
 
 Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajnosc/perf(t) " + std::to_string(c::K) + ".txt")
 {
+	//std::ofstream out("./logs/out.txt");
+	std::string log = "./logs/viscosity_" + std::to_string(c::viscosity) + "_consumption_" + std::to_string(c::nutrient_consumption_rate_tumor) + ".txt";
+	logger.open(log.c_str());
+	logger << "sim_time" << "	" << "mechanical_energy" << "	" << "system_pressure" << "	" << "tumor_size" << "	" << std::endl;
+
+	auto static sim_time = 0.0f;
 	start_time = std::chrono::high_resolution_clock::now();
 	steps = 0;
 	emitters.set_particle_system(particle_system);
@@ -19,18 +24,18 @@ Simulation::Simulation() : mechanical_energy(0.0f), stats_file("./../plot/wydajn
 	if (c::blood_vessels_setup) {
 		 //building blood vessels
 		for (auto iter = c::zmin + 0.01f; iter < c::zmax - 0.01f; iter += 0.02f) {
-			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
-			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymax / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, c::ymin / 3, iter), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymax / 3, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(iter, c::ymin / 3, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmin / 3, iter, c::zmax / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(glm::vec3(c::xmax / 3, iter, c::zmin / 3), glm::vec3(0.0f), 2, proliferative, 0, 0, 1, RANDOM(0.9f, 1.0f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 		}
 	}
 }
@@ -44,6 +49,8 @@ Simulation::~Simulation()
 	//	energy_stats.end(),
 	//	std::ostream_iterator<std::string>(stats_file, "\n"),
 	//	statsToString);
+	logger.close();
+
 }
 
 void Simulation::run(float dt)
@@ -65,13 +72,13 @@ void Simulation::run(float dt)
 	resolve_collisions();
 	
 	advance();
+
 	update_particles_status();
 	if (steps == 50) { // add tumor
-		auto part = Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, proliferative, steps, 200, 998.29f, RANDOM(0.2f, 0.3f), c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
+		auto part = Particle(glm::vec3(0.0f), glm::vec3(0.0f), 1, proliferative, steps, 200, 1, RANDOM(0.2f, 0.3f), 998.29f, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f);
 		particle_system.add_particle(part);
 	}
-
-	std::cout << "Number of particles:" << particle_system.particles.size() << std::endl;
+	//std::cout << "Number of particles:" << particle_system.particles.size() << std::endl;
 	// tutaj bo Painter::paint() jest const
 	// do wizualizacji:
 	// za pomoca siatki generowanej przez MC
@@ -133,7 +140,7 @@ std::vector<Particle> Simulation::extract_surface_particles()
 	{
 		#pragma omp for schedule(static)
 		//for (auto & i : grid)
-		for(int idx = 0; idx < grid.size(); ++idx)
+		for (int idx = 0; idx < grid.size(); ++idx)
 		{
 			auto & i = grid[idx];
 			Particle * particle_i_ptr = i.first_particle;
@@ -282,6 +289,7 @@ void Simulation::compute_nutrient()
 		#pragma omp for schedule(static) 
 		for(int idx = 0; idx < grid.size(); ++idx)
 		{
+			//std::cout << sizeof(grid.size()) << std::endl;
 			auto & i = grid[idx];
 			Particle * particle_i_ptr = i.first_particle;
 
@@ -290,9 +298,8 @@ void Simulation::compute_nutrient()
 			{
 				Particle & particle_i = *particle_i_ptr;
 				if (particle_i.type == 1 && particle_i.state == dead) { continue; } // if particle is a tumor in dead state -> don't calculate nutrient
-				auto nutrient = 0.0f;
-				/*if (particle_i.type == 1)
-					std::cout << particle_i.nutrient << std::endl;*/
+				auto nutrient = 0.0f;		
+
 				// go through neighbours of particle [ii] in grid [i]
 				for(int z = -1; z <= 1; ++z)
 				{
@@ -328,6 +335,7 @@ void Simulation::compute_nutrient()
 									++particle_j_ptr;
 									continue;
 								}
+												
 								nutrient += fabs(particle_j.nutrient - particle_i.nutrient) *(particle_j.mass / (particle_j.density + particle_i.density))*LapW_viscosity(r, c::H);
 								++particle_j_ptr;
 							}
@@ -338,7 +346,7 @@ void Simulation::compute_nutrient()
 
 				// different constants of diffusion for different types of cells 				
 				
-				if (particle_i.type == 2) // blood vessels constant conc
+				if (particle_i.type == 2 || particle_i.type == 0) // blood vessels constant conc
 				{
 					nutrient = c::nutrient_blood_vessel_concentration;
 				}
@@ -395,11 +403,11 @@ void Simulation::multiply_particles() {
 					if (p.type == 1 && p.state == proliferative && (p.nutrient > c::nutrient_multiply_threshold)) {
 						#pragma omp critical
 							positions_to_multiply.push_back(p.position);
-						p.nutrient = RANDOM(c::nutrient_consumption_rate_tumor + 0.05f, c::nutrient_consumption_rate_tumor + 0.1f);
+						p.nutrient = static_cast<float>(RANDOM(c::nutrient_die_threshold + 0.05f, c::nutrient_die_threshold + 0.1f));
 						flag_multiply = true;
 					}
 					p.time_born = steps;
-					p.time_to_live = RANDOM(0.5*c::time_to_live, 1.5*c::time_to_live);
+					p.time_to_live = static_cast<int>(RANDOM(0.5*c::time_to_live, 1.5*c::time_to_live));
 				}
 			}
 		}
@@ -407,9 +415,10 @@ void Simulation::multiply_particles() {
 	
 	if (flag_multiply) {
 		for (auto const &pos : positions_to_multiply) {
-			particle_system.add_particle(Particle(pos, glm::vec3(0.0f), 1, proliferative, steps, RANDOM(0.5*c::time_to_live, 1.5*c::time_to_live),
-									c::restDensity, RANDOM(c::nutrient_consumption_rate_tumor + 0.05f, c::nutrient_consumption_rate_tumor + 0.1f),
-									c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
+			particle_system.add_particle(Particle(pos, glm::vec3(0.0f), 1, proliferative, steps, 
+											static_cast<int>(RANDOM(0.5*c::time_to_live, 1.5*c::time_to_live)),
+											particle_system.get_x_transparency(pos), RANDOM(c::nutrient_die_threshold + 0.05f, c::nutrient_die_threshold + 0.1f),
+											c::restDensity, c::restDensity * 1.25f, c::viscosity, c::particleMass * 1.25f, 0.5f));
 			flag_multiply = false;
 		}
 		positions_to_multiply.clear();
@@ -433,7 +442,7 @@ void Simulation::update_particles_status() {
 		for (int idx = 0; idx < particles.size(); ++idx)
 		{
 			auto & p = particles[idx];
-
+			//if (p.type == 1) { std::cout << p.nutrient << std::endl; }
 				int tumor_neighbors = 0, overall_neighbors = 0, quiescent_neighbors = 0;
 
 				for (int z = -1; z <= 1; ++z){
@@ -872,55 +881,16 @@ void Simulation::compute_forces()
 	}
 }
 
-bool save_screenshot(std::string filename, int w, int h)
-{
-	// This prevents the images getting padded 
-	// when the width multiplied by 3 is not a multiple of 4
-	glPixelStorei(GL_PACK_ALIGNMENT, 1);
-
-	int nSize = w*h * 3;
-	// First let's create our buffer, 3 channels per Pixel
-	char* dataBuffer = (char*) malloc(nSize*sizeof(char));
-
-	if(!dataBuffer) return false;
-
-	// Let's fetch them from the backbuffer	
-	// We request the pixels in GL_BGR format, thanks to Berzeger for the tip
-	glReadPixels((GLint) 0, (GLint) 0,
-		(GLint) w, (GLint) h,
-		GL_BGR, GL_UNSIGNED_BYTE, dataBuffer);
-
-	//Now the file creation
-	FILE *filePtr;
-	fopen_s(&filePtr, filename.c_str(), "wb");
-	if(!filePtr) return false;
-
-
-	unsigned char TGAheader[12] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	unsigned char header[6] = { w % 256, w / 256,
-		h % 256, h / 256,
-		24u, 0 };
-	// We write the headers
-	fwrite(TGAheader, sizeof(unsigned char), 12, filePtr);
-	fwrite(header, sizeof(unsigned char), 6, filePtr);
-	// And finally our image data
-	fwrite(dataBuffer, sizeof(GLubyte), nSize, filePtr);
-	fclose(filePtr);
-
-	return true;
-}
-
 void Simulation::advance()
 {
 	auto static iteration_count = 0u;
-	auto static sim_time = 0.0f;
 	using namespace c;
 	using std::chrono::high_resolution_clock;
 	using std::chrono::milliseconds;
 	// http://stackoverflow.com/questions/16056300/runge-kutta-rk4-not-better-than-verlet?rq=1
-	glm::vec3 kinetic_force(0.0f), potential_force(0.0f);
+	glm::vec3 kinetic_force(0.0f), potential_force(0.0f), system_pressure(0.0f);
 	auto & particles = particle_system.particles;
-	
+	int tumor_size = 0;
 	#pragma omp parallel default(shared)
 	{
 		#pragma omp for schedule(static)
@@ -928,6 +898,7 @@ void Simulation::advance()
 		for(int idx = 0; idx < particles.size(); ++idx)
 		{
 			auto & p = particles[idx];
+			if (p.type == 1) { tumor_size++; }
 			// 0. semi-implicit Euler
 			//glm::vec3 new_velocity = p.velocity + p.acc*dt;
 			//glm::vec3 new_position = p.position + new_velocity*dt;
@@ -937,14 +908,14 @@ void Simulation::advance()
 				glm::vec3 new_velocity = (new_position - p.position) / dt;
 
 				// 2. position Verlet O(dt^4): http://www.saylor.org/site/wp-content/uploads/2011/06/MA221-6.1.pdf
-				//glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
-				//glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
+				// glm::vec3 new_position = 2.0f*p.position - p.previous_position + p.acc*dt*dt;// r_(t+dt)
+				// glm::vec3 new_velocity = (new_position - p.position)/dt;// v_(t+dt)
 
 				// 3. Leapfrog: http://einstein.drexel.edu/courses/Comp_Phys/Integrators/leapfrog/
-				//glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
-				//glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
-				//glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
-				//glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
+				// glm::vec3 half_velocity = p.velocity + p.acc*dt; // v(t+1/2) = v(t-1/2) + a(t)*dt
+				// glm::vec3 eval_velocity = (p.velocity + half_velocity)*0.5f; // v(t+1) = [v(t-1/2) + v(t+1/2)] * 0.5; used to compute forces later
+				// glm::vec3 new_velocity = half_velocity;// new_velocity = v(t+1/2)
+				// glm::vec3 new_position = p.position + half_velocity*dt; // p(t+1) = p(t) + v(t+1/2) dt
 
 				//p.previous_position = p.position;
 				p.position = new_position;
@@ -953,6 +924,8 @@ void Simulation::advance()
 
 				potential_force += p.position * glm::abs(p.acc) * p.mass;
 				kinetic_force += glm::pow(new_velocity, glm::vec3(2.0f)) * p.mass;
+				system_pressure += p.pressure;
+
 			}
 		}
 	}
@@ -961,6 +934,10 @@ void Simulation::advance()
 	sim_time += dt;
 	steps++;
 	mechanical_energy = 0.5f*glm::length(kinetic_force) + glm::length(potential_force);
+
+	logger << sim_time << "	" << glm::length(system_pressure) << "	" << tumor_size << "	" << std::endl;
+
+	//
 	//auto d = std::chrono::duration_cast<milliseconds>(high_resolution_clock::now() - start_time);
 	//if(iteration_count % 5u == 0)
 	//	energy_stats.push_back(std::make_pair(sim_time, static_cast<float>(iteration_count) / static_cast<float>(d.count())));

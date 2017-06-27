@@ -4,7 +4,7 @@
 
 #define RANDOM(MIN, MAX) (MIN) + static_cast<float>(rand()) /(static_cast<float>(RAND_MAX/((MAX)-(MIN))))
 
-enum state_t { proliferative, quiescent, dead };
+enum state_t { proliferative, quiescent, dead, none };
 
 struct Particle
 {
@@ -12,8 +12,8 @@ struct Particle
 	Particle(const glm::vec3 pos, const glm::vec3 velo);
 	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_viscosity, float particle_mass);
 	Particle(const glm::vec3 pos, const glm::vec3 velo, float fluid_rest_density, float fluid_viscosity, float particle_mass);
-	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, state_t state, int time_born, int time_to_live, float fluid_rest_density, float fluid_viscosity, float particle_mass);
-	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, state_t state, int time_born, int time_to_live, float density, float nutrient, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value);
+	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, state_t state, int time_born, int time_to_live, int transparency, float fluid_rest_density, float fluid_viscosity, float particle_mass);
+	Particle(const glm::vec3 pos, const glm::vec3 velo, int type, state_t state, int time_born, int time_to_live, int transparency, float nutrient, float density, float fluid_rest_density, float fluid_viscosity, float particle_mass, float color_value);
 
 	void add_nutrient(float nut)
 	{
@@ -42,6 +42,7 @@ struct Particle
 	float smoothed_color_value;
 	float color_field_gradient_magnitude;
 	bool at_surface;
+	int transparency;
 	int id;
 	static int no_particles;
 	int time_to_live;

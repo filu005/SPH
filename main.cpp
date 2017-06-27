@@ -1,7 +1,9 @@
-#include <iostream>
+﻿#include <iostream>
 #include <ctime>
 #include <thread>
 #include <memory>
+#include <FreeImage.h>
+#include <direct.h>
 
 // GLEW
 //#define GLEW_STATIC
@@ -17,26 +19,31 @@
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void do_movement(float dt);
+void do_movement(GLfloat dt);
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void render(GLFWwindow* window);
 double calcFPS(GLFWwindow* window, double theTimeInterval = 1.0, std::string theWindowTitle = "NONE");
 bool secElapse(double interval = 1.0);
+bool save_screenshot_tga(std::string filename, int w, int h);
+void save_screenshot_bmp();
 
 // Camera
 bool keys[1024];
 GLfloat lastX = c::width * 0.5f, lastY = c::height * 0.5f;
 bool firstMouse = true;
-
+int steps = 0;
 unique_ptr<Application> app;
+std::string folder = "viscosity_" + to_string(c::viscosity) + "_consumption_" + to_string(c::nutrient_consumption_rate_tumor);
+std::string direction_of_screen;
+bool make_screenshots = false;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main(int argc, char* argv[])
 {
+	_mkdir(folder.c_str());
 	srand(static_cast<unsigned>(time(0)));
-
 	// Init GLFW
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -76,9 +83,10 @@ int main(int argc, char* argv[])
 	app = make_unique<Application>();
 	double t0 = glfwGetTime();
 	double dt, fps;
-
+	Camera& camera = app->camera;
+	bool not_first = false;
 	// Game loop
-	while(!glfwWindowShouldClose(window))
+	while (!glfwWindowShouldClose(window))
 	{
 		dt = glfwGetTime() - t0;
 		t0 = glfwGetTime();
@@ -88,15 +96,44 @@ int main(int argc, char* argv[])
 
 		fps = calcFPS(window, 1.0, "");
 		do_movement(static_cast<GLfloat>(dt));
-		
+
 		app->tick(static_cast<GLfloat>(dt));
-
+		ParticleSystem & ps = app->get_particle_system();
+		string direction;
+		if (make_screenshots){
+			if ((steps % 502 == 0 || steps % 506 == 0 || steps % 510 == 0) && steps > 0) {
+				save_screenshot_bmp();
+			}
+		}
 		render(window);
-
-		//http://stackoverflow.com/questions/17138579/idle-thread-time-in-glfw-3-0-c
 		std::this_thread::yield();
-	}
+		if (make_screenshots) {
+			if (steps % 500 == 0 && steps > 0) { // front
+				camera.set(glm::vec3(-0.025868f, 0.02182f, 0.84286f), -90.0f, -2.75f);
+				direction_of_screen = "front";
+				if (not_first) {
+					ps.x_cross_section(1);
+				}
+				not_first = true;
 
+			}
+			if (steps % 504 == 0 && steps > 0) { // left
+				camera.set(glm::vec3(-0.76836f, -0.00138f, 0.01923f), -1.25f, -0.875f);
+				direction_of_screen = "left";
+				ps.x_cross_section(0);
+				
+			}
+			if (steps % 508 == 0 && steps > 0) {  // right
+				ps.x_cross_section(0);
+				camera.set(glm::vec3(0.74632f, -0.01353f, -0.00249f), -180.0f, 2.25f);
+				direction_of_screen = "right";
+				ps.x_cross_section(1);
+			}
+		}
+		//http://stackoverflow.com/questions/17138579/idle-thread-time-in-glfw-3-0-c
+		steps++;
+	}
+	
 	glfwTerminate();
 	return 0;
 }
@@ -108,31 +145,41 @@ void do_movement(GLfloat dt)
 	ParticleSystem & ps = app->get_particle_system();
 
 	// Camera controls
-	if(keys[GLFW_KEY_W])
+	if (keys[GLFW_KEY_W])
 		camera.ProcessKeyboard(FORWARD, dt);
-	if(keys[GLFW_KEY_S])
+	if (keys[GLFW_KEY_S])
 		camera.ProcessKeyboard(BACKWARD, dt);
-	if(keys[GLFW_KEY_A])
+	if (keys[GLFW_KEY_A])
 		camera.ProcessKeyboard(LEFT, dt);
-	if(keys[GLFW_KEY_D])
+	if (keys[GLFW_KEY_D])
 		camera.ProcessKeyboard(RIGHT, dt);
-	if(keys[GLFW_KEY_P])
+	if (keys[GLFW_KEY_P])
 	{
 		ps.boost_mass(static_cast<int>(c::N * 0.5f), 1.25f);
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 	}
-	if(keys[GLFW_KEY_EQUAL]) // +
+	if (keys[GLFW_KEY_X])
+	{
+		ps.x_cross_section(1);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	if (keys[GLFW_KEY_Z])
+	{
+		ps.x_cross_section(0);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	if (keys[GLFW_KEY_EQUAL]) // +
 		app->box_editor.process_extrusion(c::extrusion_step);
-	if(keys[GLFW_KEY_MINUS]) // -
+	if (keys[GLFW_KEY_MINUS]) // -
 		app->box_editor.process_extrusion(-c::extrusion_step);
 }
 
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
-	if(action == GLFW_PRESS || action == GLFW_REPEAT)
+	if (action == GLFW_PRESS || action == GLFW_REPEAT)
 	{
-		switch(key)
+		switch (key)
 		{
 		case GLFW_KEY_ESCAPE:
 			glfwSetWindowShouldClose(window, GL_TRUE);
@@ -140,9 +187,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		}
 	}
 
-	if(action == GLFW_PRESS)
+	if (action == GLFW_PRESS)
 		keys[key] = true;
-	else if(action == GLFW_RELEASE)
+	else if (action == GLFW_RELEASE)
 		keys[key] = false;
 }
 
@@ -153,7 +200,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	GLfloat const xposf = static_cast<GLfloat>(xpos);
 	GLfloat const yposf = static_cast<GLfloat>(ypos);
 
-	if(firstMouse)
+	if (firstMouse)
 	{
 		lastX = xposf;
 		lastY = yposf;
@@ -175,9 +222,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if(button == GLFW_MOUSE_BUTTON_1) // LMB
+	if (button == GLFW_MOUSE_BUTTON_1) // LMB
 	{
-		if(action == GLFW_PRESS)
+		if (action == GLFW_PRESS)
 		{
 			auto xpos = 0.0, ypos = 0.0;
 			glfwGetCursorPos(window, &xpos, &ypos);
@@ -199,10 +246,36 @@ void render(GLFWwindow* window)
 	glClearDepth(1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//if (steps % 99 == 0 && steps > 0) { // left
+	//	Camera& camera = app->camera;
+	//	camera.set(glm::vec3(-0.76836f, -0.00138f, 0.01923f), -1.25f, -0.875f);
+	//}
+	//if (steps % 100 == 0 && steps > 0) { // front
+	//	Camera& camera = app->camera;
+	//	camera.set(glm::vec3(-0.025868f, 0.02182f, 0.84286f), -90.0f, -2.75f);
+	//}
+	//if (steps % 101 == 0 && steps > 0) {  // right
+	//	Camera& camera = app->camera;
+	//	camera.set(glm::vec3(0.74632f, -0.01353f, -0.00249f ), 2.25f, -180.0f);
+	//}
 	app->paint();
 
 	// Swap the buffers
 	glfwSwapBuffers(window);
+	//
+	//if (steps % 99 == 0 && steps > 0) { // left
+	//	save_screenshot("viscosity_"+ to_string(c::viscosity) + "_consumption_"+ to_string(c::nutrient_consumption_rate_tumor) + 
+	//		"/" + to_string(steps) + "_left.tga", c::width, c::height);
+	//}
+	//if (steps % 100 == 0 && steps > 0) { // front
+	//	save_screenshot("viscosity_" + to_string(c::viscosity) + "_consumption_" + to_string(c::nutrient_consumption_rate_tumor) + 
+	//		"/" + to_string(steps) + "_front.tga", c::width, c::height);
+	//}
+	//if (steps % 101 == 0 && steps > 0) { // right
+	//	save_screenshot("viscosity_" + to_string(c::viscosity) + "_consumption_" + to_string(c::nutrient_consumption_rate_tumor) + 
+	//		"/" + to_string(steps) + "_right.tga", c::width, c::height);
+	//}
+
 }
 
 bool secElapse(double interval)
@@ -211,7 +284,7 @@ bool secElapse(double interval)
 
 	double currentTime = glfwGetTime();
 
-	if((currentTime - t0) > interval)
+	if ((currentTime - t0) > interval)
 	{
 		t0 = glfwGetTime();
 		return true;
@@ -228,28 +301,28 @@ double calcFPS(GLFWwindow* window, double theTimeInterval, std::string theWindow
 	static int    fpsFrameCount = 0;             // Set the initial FPS frame count to 0
 	static double fps = 0.0;           // Set the initial FPS value to 0.0
 
-	// Get the current time in seconds since the program started (non-static, so executed every time)
+									   // Get the current time in seconds since the program started (non-static, so executed every time)
 	double currentTime = glfwGetTime();
 
 	// Ensure the time interval between FPS checks is sane (low cap = 0.1s, high-cap = 10.0s)
 	// Negative numbers are invalid, 10 fps checks per second at most, 1 every 10 secs at least.
-	if(theTimeInterval < 0.1)
+	if (theTimeInterval < 0.1)
 	{
 		theTimeInterval = 0.1;
 	}
-	if(theTimeInterval > 10.0)
+	if (theTimeInterval > 10.0)
 	{
 		theTimeInterval = 10.0;
 	}
 
 	// Calculate and display the FPS every specified time interval
-	if((currentTime - t0Value) > theTimeInterval)
+	if ((currentTime - t0Value) > theTimeInterval)
 	{
 		// Calculate the FPS as the number of frames divided by the interval in seconds
-		fps = (double) fpsFrameCount / (currentTime - t0Value);
+		fps = (double)fpsFrameCount / (currentTime - t0Value);
 
 		// If the user specified a window title to append the FPS value to...
-		if(theWindowTitle != "NONE")
+		if (theWindowTitle != "NONE")
 		{
 			// Convert the fps value into a string using an output stringstream
 			std::ostringstream stream;
@@ -279,4 +352,59 @@ double calcFPS(GLFWwindow* window, double theTimeInterval, std::string theWindow
 
 	// Return the current FPS - doesn't have to be used if you don't want it!
 	return fps;
+}
+
+void save_screenshot_bmp() {
+	BYTE* pixels = new BYTE[3 * c::width * c::height];
+
+	glReadPixels(0, 0, c::width, c::height, GL_BGR, GL_UNSIGNED_BYTE, pixels);
+
+	// Convert to FreeImage format & save to file
+	FIBITMAP* image = FreeImage_ConvertFromRawBits(pixels, c::width, c::height, 3 * c::width, 24, 0xFF0000, 0x00FF00, 0x0000FF, false);
+	FreeImage_Save(FIF_BMP, image, std::string("./" + folder + "/" + to_string(steps) + "_" +direction_of_screen+"_" + ".bmp").c_str(), 0);
+
+	// Free resources
+	FreeImage_Unload(image);
+	delete[] pixels;
+}
+
+bool save_screenshot_tga(std::string filename, int w, int h)
+{
+	// This prevents the images getting padded 
+	// when the width multiplied by 3 is not a multiple of 4
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+	int nSize = w*h * 3;
+	// First let's create our buffer, 3 channels per Pixel
+	char* dataBuffer = (char*)malloc(nSize * sizeof(char));
+
+	if (!dataBuffer) return false;
+	
+	// Let's fetch them from the backbuffer	
+	// We request the pixels in GL_BGR format, thanks to Berzeger for the tip
+	glReadPixels((GLint)0, (GLint)0,
+		(GLint)w, (GLint)h,
+		GL_BGR, GL_UNSIGNED_BYTE, dataBuffer);
+
+	//Now the file creation
+	FILE *filePtr;
+	fopen_s(&filePtr, filename.c_str(), "wb");
+	if (!filePtr) return false;
+
+
+	unsigned char TGAheader[12] = { 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+	unsigned char header[6] = 
+	{ 
+		w % 256, w / 256,
+		h % 256, h / 256,
+		24u, 0
+	};
+	// We write the headers
+	fwrite(TGAheader, sizeof(unsigned char), 12, filePtr);
+	fwrite(header, sizeof(unsigned char), 6, filePtr);
+	// And finally our image data
+	fwrite(dataBuffer, sizeof(GLubyte), nSize, filePtr);
+	fclose(filePtr);
+
+	return true;
 }

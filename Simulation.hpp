@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <functional>
+#include <iostream>
 
 #include "ParticleSystem.hpp"
 #include "DistanceField.hpp"
@@ -34,6 +35,9 @@ public:
 	~Simulation();
 	
 	void run(float dt);
+	float sim_time;
+	
+	std::ofstream logger;
 
 	// main components and also Paintables
 	Skybox skybox;
@@ -81,7 +85,7 @@ private:
 	//float W_viscosity(float r, float h);
 	float LapW_viscosity(float r, float h);
 	glm::vec3 Grad_BicubicSpline(glm::vec3 x, float h);
-
+	
 	float mechanical_energy;
 	std::chrono::high_resolution_clock::time_point start_time;
 	std::vector<std::pair<float, float> > energy_stats;

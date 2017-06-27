@@ -73,6 +73,9 @@ ParticleSystem::ParticleSystem() : camera_ref(nullptr)
 	bin_idx.resize(c::N);
 	particle_color.resize(c::N);
 	surface_particles.resize(c::N);
+	particle_transparency.resize(c::N);
+	x_transparency_more = 1;
+	x_transparency_less = 1;
 
 	setup_buffers();
 }
@@ -96,6 +99,7 @@ void ParticleSystem::setup_buffers(void)
 		model_matrices[index] = model;
 		bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 		particle_color[index] = compute_particle_color(p.type, p.state);
+		particle_transparency[index] = p.transparency;
 		surface_particles[index] = p.at_surface;
 		index++;
 	}
@@ -118,6 +122,11 @@ void ParticleSystem::setup_buffers(void)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLint) * particle_count, &this->particle_color[0], GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	glGenBuffers(1, &this->particle_transparency_VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_transparency_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLint) * particle_count, &this->particle_transparency[0], GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glGenBuffers(1, &this->at_surface_VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO); 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLuint) * particle_count, &this->surface_particles[0], GL_DYNAMIC_DRAW);
@@ -150,11 +159,16 @@ void ParticleSystem::setup_buffers(void)
 	glVertexAttribDivisor(1, 1);
 	//By setting the attribute divisor to 1 we're effectively telling OpenGL that the vertex attribute at attribute location x is an instanced array.
 
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_transparency_VBO);
+	glEnableVertexAttribArray(8);
+	glVertexAttribPointer(8, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+	glVertexAttribDivisor(8, 1);
+
 	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
 	glEnableVertexAttribArray(7);
 	glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glVertexAttribDivisor(7, 1);
-
+	
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 1, GL_UNSIGNED_INT, GL_FALSE, 0, (GLvoid*) 0);
@@ -181,6 +195,7 @@ void ParticleSystem::setup_buffers(void)
 
 void ParticleSystem::reset_buffers()
 {
+	glDisableVertexAttribArray(8);
 	glDisableVertexAttribArray(7);
 	glDisableVertexAttribArray(6);
 	glDisableVertexAttribArray(5);
@@ -193,6 +208,7 @@ void ParticleSystem::reset_buffers()
 	glDeleteBuffers(1, &this->VBO); 
 	glDeleteBuffers(1, &this->at_surface_VBO);
 	glDeleteBuffers(1, &this->particle_color_VBO);
+	glDeleteBuffers(1, &this->particle_transparency_VBO);
 	glDeleteBuffers(1, &this->bin_idx_VBO);
 	glDeleteBuffers(1, &this->model_mat_VBO);
 	glDeleteVertexArrays(1, &this->VAO);
@@ -206,18 +222,20 @@ void ParticleSystem::update_buffers()
 	assert(camera_ref != nullptr);
 
 	// prepare data for copying it onto GPU
+	struct RenderingData
 	{
-		struct RenderingData
-		{
-			glm::vec3 position;
-			int type; 
-			int state;
-			bool at_surface;
-		};
+		glm::vec3 position;
+		int type;
+		int state;
+		int transparency;
+		bool at_surface;
+	};
+
+	{		
 		std::vector<RenderingData> particles_rendering_data;
 		particles_rendering_data.reserve(particles.size());
 		for (auto const & p : particles)
-			particles_rendering_data.push_back(RenderingData{ p.position, p.type, p.state, p.at_surface });
+			particles_rendering_data.push_back(RenderingData{ p.position, p.type, p.state, p.transparency, p.at_surface });
 		std::sort(particles_rendering_data.begin(), particles_rendering_data.end(), [&](RenderingData const & rda, RenderingData const & rdb) { return glm::distance(rda.position, camera_ref->Position) > glm::distance(rdb.position, camera_ref->Position); });
 
 		int index = 0;
@@ -230,6 +248,7 @@ void ParticleSystem::update_buffers()
 			model_matrices[index] = model;
 			bin_idx[index] = static_cast<float>(get_cell_index(particle_position));
 			particle_color[index] = compute_particle_color(rd.type, rd.state);
+			particle_transparency[index] = rd.transparency;
 			surface_particles[index] = rd.at_surface;
 			index++;
 		}
@@ -247,6 +266,10 @@ void ParticleSystem::update_buffers()
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->particle_color_VBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLint) * particle_count, &this->particle_color[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, this->particle_transparency_VBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLint) * particle_count, &this->particle_transparency[0]);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, this->at_surface_VBO);
@@ -281,7 +304,8 @@ void ParticleSystem::add_particle(Particle p)
 	particles.push_back(p);
 	model_matrices.push_back(glm::mat4());
 	bin_idx.push_back(0.0f);
-	particle_color.push_back(0.0f);
+	particle_color.push_back(0);
+	particle_transparency.push_back(p.transparency);
 	surface_particles.push_back(0u);
 
 	++particle_count;
@@ -297,6 +321,7 @@ void ParticleSystem::delete_particle(int id)
 	model_matrices.erase(model_matrices.end()-1);
 	bin_idx.erase(bin_idx.end()-1); 
 	particle_color.erase(particle_color.end()-1);
+	particle_transparency.erase(particle_transparency.end()-1);
 	surface_particles.erase(surface_particles.end()-1);
 
 	--particle_count;
@@ -366,6 +391,55 @@ void ParticleSystem::insert_sort_particles_by_indices()
 	//	for(; insertion >= std::begin(particles) && get_cell_index(insertion->position) > particle_i_idx; insertion--);
 	//	std::rotate(insertion++, it, std::next(it));
 	//}
+}
+
+void ParticleSystem::x_cross_section(int which)
+{
+	if (which == 0) {
+		if (x_transparency_less == 1) {
+			x_transparency_less = 0;
+		}
+		else {
+			x_transparency_less = 1;
+		}
+	}
+	if (which == 1) {
+		if (x_transparency_more == 1) {
+			x_transparency_more = 0;
+		}
+		else {
+			x_transparency_more = 1;
+		}
+	}
+
+	for (auto& p : particles)
+	{
+		if (which == 0) {
+			if (p.position.x <= 0.0f) {
+				if (p.transparency == 1) {
+					p.transparency = x_transparency_less;
+				}
+				else {
+					p.transparency = x_transparency_less;
+				}
+			}
+		}
+		if (which == 1) {
+			if (p.position.x > 0.0f) {
+				if (p.transparency == 1) {
+					p.transparency = x_transparency_more;
+				}
+				else {
+					p.transparency = x_transparency_more;
+				}
+			}
+		}
+	}	
+}
+
+int ParticleSystem::get_x_transparency(glm::vec3 pos) {
+	if (pos.x <= 0.0f){ return this->x_transparency_less; }
+	if (pos.x > 0.0f) { return this->x_transparency_more; }
 }
 
 GLfloat const ParticleSystem::point_vertices[3] =
